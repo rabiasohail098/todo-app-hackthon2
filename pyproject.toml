@@ -1,0 +1,20 @@
+[project]
+name = "todo-app"
+version = "0.1.0"
+description = "A command-line todo application with CRUD operations"
+requires-python = ">=3.13"
+authors = [{name = "Todo App Team", email = "dev@todoapp.local"}]
+readme = "README.md"
+
+[project.scripts]
+todo = "main:main"
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
