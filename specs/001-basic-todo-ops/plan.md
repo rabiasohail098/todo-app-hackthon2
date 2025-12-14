@@ -1,38 +1,37 @@
-# Implementation Plan: Basic Todo Operations
+# Implementation Plan: [FEATURE]
 
-**Branch**: `001-basic-todo-ops` | **Date**: 2025-12-05 | **Spec**: specs/001-basic-todo-ops/spec.md
-**Input**: Feature specification from `specs/001-basic-todo-ops/spec.md`
+**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
+**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
 
-**Note**: This plan is filled in by the `/sp.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Note**: This template is filled in by the `/sp.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-Implement a command-line todo application with core CRUD operations (add, view, update, delete, mark complete). MVP scope: P1 stories only (add/view/mark complete) form a complete task management loop. Phase 1 constraints enforce in-memory storage, Python stdlib only, and modular code organization (models/services/CLI separation). Architecture is CLI-first with interactive prompts, table-based display, and simple command-line interface.
+[Extract from feature spec: primary requirement + technical approach from research]
 
 ## Technical Context
 
-**Language/Version**: Python 3.13+
-**Primary Dependencies**: Python standard library only (no external packages)
-**Storage**: In-memory (Python lists/dictionaries only; no persistence)
-**Testing**: pytest (standard library compatible)
-**Target Platform**: Console/Terminal (cross-platform)
-**Project Type**: Single CLI project
-**Performance Goals**: Immediate command response (<100ms), support display of 1000+ tasks
-**Constraints**: No external dependencies, no databases, no file I/O, PEP 8 compliance, modular code structure
-**Scale/Scope**: Phase 1 MVP: 3 P1 user stories (add/view/mark) + 2 P2 stories (delete/update); ~500-800 LOC
+<!--
+  ACTION REQUIRED: Replace the content in this section with the technical details
+  for the project. The structure here is presented in advisory capacity to guide
+  the iteration process.
+-->
+
+**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
+**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
+**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
+**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
+**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
+**Project Type**: [single/web/mobile - determines source structure]  
+**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
+**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
+**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-✅ **Spec-Driven Development**: Spec complete with 5 prioritized user stories, acceptance scenarios, functional requirements
-✅ **CLI-First Architecture**: All features accessible via command-line (add, view, update, delete, mark, exit commands)
-✅ **In-Memory Storage Only**: No databases or file persistence; data stored in Python lists/dicts only
-✅ **PEP 8 Compliance**: Code must follow PEP 8 (4-space indent, <100 char soft limit, descriptive names)
-✅ **No External Dependencies**: Python 3.13+ stdlib only; no Flask, Django, requests, etc.
-✅ **Modular Code Organization**: Architecture separates models (Task entity), services (business logic), CLI (user interaction)
-
-**GATE RESULT**: ✅ **PASS** - All constitution principles verified. No violations or justified exceptions needed.
+[Gates determined based on constitution file]
 
 ## Project Structure
 
@@ -49,121 +48,57 @@ specs/[###-feature]/
 ```
 
 ### Source Code (repository root)
+<!--
+  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
+  for this feature. Delete unused options and expand the chosen structure with
+  real paths (e.g., apps/admin, packages/something). The delivered plan must
+  not include Option labels.
+-->
 
 ```text
+# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
 src/
 ├── models/
-│   ├── __init__.py
-│   └── task.py                    # Task entity with ID, title, description, status
 ├── services/
-│   ├── __init__.py
-│   └── task_service.py            # Business logic: add, view, update, delete, mark
 ├── cli/
-│   ├── __init__.py
-│   └── main.py                    # Command-line interface: input/output, command loop
-└── __init__.py
+└── lib/
 
 tests/
-├── __init__.py
-├── unit/
-│   ├── __init__.py
-│   ├── test_task_model.py         # Task entity tests
-│   └── test_task_service.py       # Service logic tests
+├── contract/
 ├── integration/
-│   ├── __init__.py
-│   └── test_cli_integration.py    # End-to-end CLI command tests
-└── contract/
-    ├── __init__.py
-    └── test_cli_contract.py       # CLI interface contract tests
+└── unit/
 
-main.py                             # Application entry point
-pyproject.toml                      # Project metadata (Python 3.13+, pytest)
+# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
+backend/
+├── src/
+│   ├── models/
+│   ├── services/
+│   └── api/
+└── tests/
+
+frontend/
+├── src/
+│   ├── components/
+│   ├── pages/
+│   └── services/
+└── tests/
+
+# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
+api/
+└── [same as backend above]
+
+ios/ or android/
+└── [platform-specific structure: feature modules, UI flows, platform tests]
 ```
 
-**Structure Decision**: Single CLI project (Option 1) - Implements all CRUD operations in one Python package with clear separation of concerns:
-- **models/**: Task entity (data structure only, no dependencies)
-- **services/**: Business logic independent of CLI (testable in isolation)
-- **cli/**: User-facing command-line interface (handles I/O, prompts, table display)
-- **main.py**: Entry point that orchestrates CLI with services
-- **tests/**: Unit (models/services), integration (CLI workflows), contract (command interface)
+**Structure Decision**: [Document the selected structure and reference the real
+directories captured above]
 
 ## Complexity Tracking
 
-No violations - all constitution gates passed. No complexity justification needed.
+> **Fill ONLY if Constitution Check has violations that must be justified**
 
-## Technical Design Decisions
-
-### Architecture Pattern: Layered Architecture
-
-| Layer | Responsibility | Module |
-|-------|---|---|
-| **Model Layer** | Task entity (data structure) | `src/models/task.py` |
-| **Service Layer** | Business logic (add, view, update, delete, mark) | `src/services/task_service.py` |
-| **CLI Layer** | User interaction (prompts, table display, command parsing) | `src/cli/main.py` |
-
-**Rationale**: Separation of concerns enables independent testing, reusability of services, and easy future replacement of CLI with API or GUI.
-
-### Data Storage: In-Memory Lists
-
-```python
-# Global task store
-tasks: list[Task] = []
-
-# Task ID generation
-next_task_id: int = 1
-```
-
-**Rationale**: Phase 1 constraint; simple, fast, suitable for MVP. Task objects are mutable; ID assignment is atomic.
-
-### CLI Command Flow: Separate Prompts
-
-1. User types command: `add` → `update` → `view` → `mark 2` → `exit`
-2. For `add`: App prompts "Enter title:", user types, prompts "Enter description:", user types
-3. For commands with ID: `mark <ID>`, `delete <ID>`, `update <ID>` on single line
-
-**Rationale**: Learner-friendly, Unix conventions, reduces parsing complexity.
-
-### Display Format: ASCII Table
-
-```
-ID | Title            | Description         | Status
----|------------------|---------------------|-------
-1  | Buy groceries    | Milk, eggs, bread   | [ ]
-2  | Review PR        | Check code quality  | [X]
-```
-
-**Rationale**: Clear at-a-glance visibility, standard CLI convention, easy to implement with string formatting.
-
-## Testing Strategy
-
-### Unit Tests (Test Models & Services in Isolation)
-
-- **Task Model**: Entity creation, attributes, status transitions
-- **Task Service**: Add task, view all tasks, mark complete, update, delete (no CLI dependency)
-
-### Integration Tests (Task Service + CLI Workflows)
-
-- **Full Command Workflows**: `add` → `view` → `mark 2` → `view` (end-to-end flows)
-- **Error Handling**: Invalid IDs, empty input, unrecognized commands
-
-### Contract Tests (CLI Interface Compliance)
-
-- **Command Syntax**: `add`, `view`, `mark <ID>`, `delete <ID>`, `update <ID>`, `exit` all parse correctly
-- **Display Format**: `view` output contains all 4 columns (ID, Title, Description, Status)
-- **Status Display**: Pending tasks show [ ], completed tasks show [X]
-
-## Risk Analysis
-
-| Risk | Mitigation |
-|------|-----------|
-| Python 3.13 compatibility | Verify all stdlib functions used are available in 3.13+ |
-| Command parsing complexity | Simple split-based parsing; validate ID conversion early |
-| Large task lists (1000+) | Simple list operations O(n); acceptable for MVP; optimize in Phase 2 if needed |
-| User input edge cases | Comprehensive validation: empty/whitespace input, invalid IDs, unrecognized commands |
-
-## Next Steps
-
-1. Generate **tasks.md** with `/sp.tasks` command (work items organized by user story)
-2. Implement tasks in priority order: P1 (add/view/mark) → P2 (delete/update)
-3. Validate each task against acceptance scenarios before marking complete
-4. Ensure all code passes PEP 8 linting before commit
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
+| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |

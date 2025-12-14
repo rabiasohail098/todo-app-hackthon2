@@ -30,10 +30,10 @@ description: "Task list for Basic Todo Operations feature implementation"
 
 **Purpose**: Project initialization and basic structure
 
-- [x] T001 Create project directory structure per plan.md (src/models, src/services, src/cli, tests/)
-- [x] T002 Create Python package structure with __init__.py files in src/models/, src/services/, src/cli/, tests/unit/, tests/integration/, tests/contract/
-- [x] T003 [P] Create pyproject.toml with Python 3.13+ requirement and pytest configuration for testing
-- [x] T004 Create main.py application entry point that initializes CLI and starts command loop
+- [ ] T001 Create project directory structure per plan.md (src/models, src/services, src/cli, tests/)
+- [ ] T002 Create Python package structure with __init__.py files in src/models/, src/services/, src/cli/, tests/unit/, tests/integration/, tests/contract/
+- [ ] T003 [P] Create pyproject.toml with Python 3.13+ requirement and pytest configuration for testing
+- [ ] T004 Create main.py application entry point that initializes CLI and starts command loop
 
 ---
 
@@ -43,10 +43,10 @@ description: "Task list for Basic Todo Operations feature implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [x] T005 Create src/models/task.py with Task class: ID (int, auto-assigned), Title (str, required), Description (str, optional), Status (bool, False=pending/True=complete)
-- [x] T006 [P] Create src/services/task_service.py with global task store (list) and ID counter, implement add_task(title, description) → Task, mark_complete(task_id) → success/error
-- [x] T007 [P] Create src/cli/main.py with command loop that accepts user input and routes to commands
-- [x] T008 Create src/cli/input_helpers.py with utility functions: get_string(prompt, required=True), get_task_id(prompt) with validation
+- [ ] T005 Create src/models/task.py with Task class: ID (int, auto-assigned), Title (str, required), Description (str, optional), Status (bool, False=pending/True=complete)
+- [ ] T006 [P] Create src/services/task_service.py with global task store (list) and ID counter, implement add_task(title, description) → Task, mark_complete(task_id) → success/error
+- [ ] T007 [P] Create src/cli/main.py with command loop that accepts user input and routes to commands
+- [ ] T008 Create src/cli/input_helpers.py with utility functions: get_string(prompt, required=True), get_task_id(prompt) with validation
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -58,11 +58,11 @@ description: "Task list for Basic Todo Operations feature implementation"
 
 **Independent Test**: Run app, type `add`, enter "Buy groceries" (title only), verify task created with ID 1 and success message shown
 
-- [x] T009 [US1] Implement add command handler in src/cli/main.py: parse `add` command, prompt for title (required), prompt for description (optional), call task_service.add_task()
-- [x] T010 [US1] Add error handling for empty/whitespace titles in add command - show error and reprompt
-- [x] T011 [US1] Display success message after task added: "Task [ID] created successfully"
-- [x] T012 [US1] Manual test: Run app, add task with title only, verify ID=1 assigned
-- [x] T013 [US1] Manual test: Run app, add task with title and description, verify both stored
+- [ ] T009 [US1] Implement add command handler in src/cli/main.py: parse `add` command, prompt for title (required), prompt for description (optional), call task_service.add_task()
+- [ ] T010 [US1] Add error handling for empty/whitespace titles in add command - show error and reprompt
+- [ ] T011 [US1] Display success message after task added: "Task [ID] created successfully"
+- [ ] T012 [US1] Manual test: Run app, add task with title only, verify ID=1 assigned
+- [ ] T013 [US1] Manual test: Run app, add task with title and description, verify both stored
 
 **Checkpoint**: User Story 1 functional and testable independently
 
@@ -74,12 +74,12 @@ description: "Task list for Basic Todo Operations feature implementation"
 
 **Independent Test**: Add 3 tasks (2 pending, 1 complete), type `view`, verify table displays all tasks with correct columns and status symbols ([ ] vs [X])
 
-- [x] T014 [US2] Implement view command handler in src/cli/main.py: parse `view` command, call task_service.get_all_tasks(), format and display results
-- [x] T015 [US2] Create src/cli/table_formatter.py with format_tasks_table(tasks) function that returns ASCII table: ID | Title | Description | Status with header separator and aligned columns
-- [x] T016 [US2] Implement status display: pending tasks show [ ], complete tasks show [X]
-- [x] T017 [US2] Handle empty task list: display "No tasks found" message
-- [x] T018 [US2] Manual test: View empty list, verify "No tasks found" message
-- [x] T019 [US2] Manual test: Add 3 tasks (create one complete), run view, verify table format and status symbols correct
+- [ ] T014 [US2] Implement view command handler in src/cli/main.py: parse `view` command, call task_service.get_all_tasks(), format and display results
+- [ ] T015 [US2] Create src/cli/table_formatter.py with format_tasks_table(tasks) function that returns ASCII table: ID | Title | Description | Status with header separator and aligned columns
+- [ ] T016 [US2] Implement status display: pending tasks show [ ], complete tasks show [X]
+- [ ] T017 [US2] Handle empty task list: display "No tasks found" message
+- [ ] T018 [US2] Manual test: View empty list, verify "No tasks found" message
+- [ ] T019 [US2] Manual test: Add 3 tasks (create one complete), run view, verify table format and status symbols correct
 
 **Checkpoint**: User Stories 1 AND 2 work independently - basic add/view loop complete
 
@@ -91,13 +91,13 @@ description: "Task list for Basic Todo Operations feature implementation"
 
 **Independent Test**: Add task (ID 1), type `mark 1`, verify status changes to [X], type `view` to confirm status persisted
 
-- [x] T020 [US3] Implement mark command handler in src/cli/main.py: parse `mark <ID>` command, validate ID, call task_service.mark_complete(task_id), display success/error
-- [x] T021 [US3] Add ID parsing and validation: convert string to int, check if task exists, show "Task not found" error for invalid IDs
-- [x] T022 [US3] Handle idempotent marking: if task already complete, show message "Task [ID] already marked complete"
-- [x] T023 [US3] Display success message: "Task [ID] marked as complete"
-- [x] T024 [US3] Manual test: Add task, mark it complete, verify status shows [X]
-- [x] T025 [US3] Manual test: Mark already-complete task, verify friendly message shown
-- [x] T026 [US3] Manual test: Mark non-existent ID, verify "Task not found" error
+- [ ] T020 [US3] Implement mark command handler in src/cli/main.py: parse `mark <ID>` command, validate ID, call task_service.mark_complete(task_id), display success/error
+- [ ] T021 [US3] Add ID parsing and validation: convert string to int, check if task exists, show "Task not found" error for invalid IDs
+- [ ] T022 [US3] Handle idempotent marking: if task already complete, show message "Task [ID] already marked complete"
+- [ ] T023 [US3] Display success message: "Task [ID] marked as complete"
+- [ ] T024 [US3] Manual test: Add task, mark it complete, verify status shows [X]
+- [ ] T025 [US3] Manual test: Mark already-complete task, verify friendly message shown
+- [ ] T026 [US3] Manual test: Mark non-existent ID, verify "Task not found" error
 
 **Checkpoint**: All P1 stories complete - MVP functionality ready (add/view/mark complete forms complete workflow)
 
@@ -109,12 +109,12 @@ description: "Task list for Basic Todo Operations feature implementation"
 
 **Independent Test**: Add task (ID 1), type `delete 1`, verify removed, type `view` to confirm task gone
 
-- [x] T027 [US4] Implement delete command handler in src/cli/main.py: parse `delete <ID>` command, validate ID, call task_service.delete_task(task_id), display success/error
-- [x] T028 [US4] Implement task deletion in src/services/task_service.py: delete_task(task_id) → success/error, remove from list
-- [x] T029 [US4] Handle invalid delete attempts: show "Task not found" error for non-existent IDs
-- [x] T030 [US4] Display success message: "Task [ID] deleted"
-- [x] T031 [US4] Manual test: Add task, delete it, verify no longer in list
-- [x] T032 [US4] Manual test: Delete non-existent ID, verify error message
+- [ ] T027 [US4] Implement delete command handler in src/cli/main.py: parse `delete <ID>` command, validate ID, call task_service.delete_task(task_id), display success/error
+- [ ] T028 [US4] Implement task deletion in src/services/task_service.py: delete_task(task_id) → success/error, remove from list
+- [ ] T029 [US4] Handle invalid delete attempts: show "Task not found" error for non-existent IDs
+- [ ] T030 [US4] Display success message: "Task [ID] deleted"
+- [ ] T031 [US4] Manual test: Add task, delete it, verify no longer in list
+- [ ] T032 [US4] Manual test: Delete non-existent ID, verify error message
 
 **Checkpoint**: User Stories 1-4 complete
 
@@ -126,14 +126,14 @@ description: "Task list for Basic Todo Operations feature implementation"
 
 **Independent Test**: Add task with title "Buy groceries", type `update 1`, change title to "Buy groceries and cook", verify changes with view command
 
-- [x] T033 [US5] Implement update command handler in src/cli/main.py: parse `update <ID>` command, validate ID, prompt for new title and/or description, call task_service.update_task()
-- [x] T034 [US5] Implement task update in src/services/task_service.py: update_task(task_id, title=None, description=None) → success/error, update only provided fields
-- [x] T035 [US5] Handle update interaction: prompt "Enter new title (leave blank to keep current):", allow optional empty input to skip title, same for description
-- [x] T036 [US5] Handle invalid update attempts: show "Task not found" error for non-existent IDs
-- [x] T037 [US5] Display success message: "Task [ID] updated"
-- [x] T038 [US5] Manual test: Update task title only, verify description unchanged
-- [x] T039 [US5] Manual test: Update description only, verify title unchanged
-- [x] T040 [US5] Manual test: Update non-existent ID, verify error message
+- [ ] T033 [US5] Implement update command handler in src/cli/main.py: parse `update <ID>` command, validate ID, prompt for new title and/or description, call task_service.update_task()
+- [ ] T034 [US5] Implement task update in src/services/task_service.py: update_task(task_id, title=None, description=None) → success/error, update only provided fields
+- [ ] T035 [US5] Handle update interaction: prompt "Enter new title (leave blank to keep current):", allow optional empty input to skip title, same for description
+- [ ] T036 [US5] Handle invalid update attempts: show "Task not found" error for non-existent IDs
+- [ ] T037 [US5] Display success message: "Task [ID] updated"
+- [ ] T038 [US5] Manual test: Update task title only, verify description unchanged
+- [ ] T039 [US5] Manual test: Update description only, verify title unchanged
+- [ ] T040 [US5] Manual test: Update non-existent ID, verify error message
 
 **Checkpoint**: All user stories complete - full CRUD functionality implemented
 
@@ -143,13 +143,13 @@ description: "Task list for Basic Todo Operations feature implementation"
 
 **Purpose**: Improvements affecting multiple user stories and overall app quality
 
-- [x] T041 [P] Add input validation helper: validate_task_id(input_str) → int or None, handles non-numeric input gracefully
-- [x] T042 [P] Implement command help: when user types unrecognized command, show available commands: add, view, mark, delete, update, exit
-- [x] T043 Implement exit command: user types `exit`, app shuts down cleanly with "Goodbye!" message
-- [x] T044 PEP 8 compliance check: Run linting on all src/ files (4-space indent, <100 char lines, descriptive names)
-- [x] T045 Code review: Verify modularity - models/ has no CLI code, services/ has no I/O, cli/ orchestrates correctly
-- [x] T046 Create README.md with: feature overview, how to run (python main.py), example commands, known limitations
-- [x] T047 Manual full integration test: Run app end-to-end (add 3 tasks, view, mark 1 complete, view, delete 1, update 1, view, exit) with no errors
+- [ ] T041 [P] Add input validation helper: validate_task_id(input_str) → int or None, handles non-numeric input gracefully
+- [ ] T042 [P] Implement command help: when user types unrecognized command, show available commands: add, view, mark, delete, update, exit
+- [ ] T043 Implement exit command: user types `exit`, app shuts down cleanly with "Goodbye!" message
+- [ ] T044 [P] PEP 8 compliance check: Run linting on all src/ files (4-space indent, <100 char lines, descriptive names)
+- [ ] T045 Code review: Verify modularity - models/ has no CLI code, services/ has no I/O, cli/ orchestrates correctly
+- [ ] T046 [P] Create README.md with: feature overview, how to run (python main.py), example commands, known limitations
+- [ ] T047 Manual full integration test: Run app end-to-end (add 3 tasks, view, mark 1 complete, view, delete 1, update 1, view, exit) with no errors
 
 ---
 
@@ -190,17 +190,30 @@ description: "Task list for Basic Todo Operations feature implementation"
 
 ---
 
+## Parallel Example: Foundational Phase
+
+```bash
+# After T005 completes, launch these in parallel:
+Task: "Create src/services/task_service.py with global task store"
+Task: "Create src/cli/main.py with command loop"
+Task: "Create src/cli/input_helpers.py with utility functions"
+```
+
+---
+
 ## Implementation Strategy
 
-### MVP First (User Story 1 Only)
+### MVP First (User Stories 1-3 Only)
 
 For fastest MVP delivery:
 
 1. Complete Phase 1: Setup (T001-T004)
 2. Complete Phase 2: Foundational (T005-T008)
 3. Complete Phase 3: User Story 1 - Add Task (T009-T013)
-4. **STOP and DEMO**: Can now add tasks and verify IDs assigned
-5. Test on user: Is adding tasks enough value? Continue to Stories 2-3 or iterate
+4. Complete Phase 4: User Story 2 - View All Tasks (T014-T019)
+5. Complete Phase 5: User Story 3 - Mark Complete (T020-T026)
+6. **STOP and DEMO**: Complete feedback loop (add → view → mark complete → view)
+7. Test with users: Sufficient value? Continue to P2 stories or iterate
 
 ### Incremental Delivery (Recommended)
 
@@ -217,10 +230,41 @@ For fastest MVP delivery:
 With multiple developers (recommend 2-3 for this size):
 
 1. All complete Phases 1-2 together (foundation shared)
-2. Developer A: Phase 3 (User Story 1)
-3. Developer B: Phases 4-5 (User Stories 2-3)
-4. Developer C: Phases 6-7 (User Stories 4-5)
-5. All: Phase 8 (polish together)
+2. After Foundational complete:
+   - Developer A: Phase 3 (User Story 1)
+   - Developer B: Phase 4 (User Story 2) - starts after T013 complete
+   - Developer C: Phase 5 (User Story 3) - starts after T019 complete
+3. After MVP (Phases 3-5):
+   - Developer A: Phase 6 (User Story 4)
+   - Developer B: Phase 7 (User Story 5)
+   - Developer C: Phase 8 (Polish)
+
+---
+
+## Summary
+
+**Total Tasks**: 47
+- Setup: 4 tasks
+- Foundational: 4 tasks
+- User Story 1 (P1 - Add): 5 tasks
+- User Story 2 (P1 - View): 6 tasks
+- User Story 3 (P1 - Mark): 7 tasks
+- User Story 4 (P2 - Delete): 6 tasks
+- User Story 5 (P2 - Update): 8 tasks
+- Polish: 7 tasks
+
+**MVP Scope** (Recommended): Phases 1-5 (26 tasks)
+- Setup + Foundational + User Stories 1-3 (Add, View, Mark Complete)
+- Delivers complete feedback loop with task tracking
+
+**Parallel Opportunities**:
+- 6 tasks marked [P] can run in parallel within their phases
+- After Foundational, all user story phases can proceed in parallel with different developers
+
+**Independent Test Criteria**:
+- Each user story has clear "Independent Test" section
+- Manual test tasks included for verification
+- Each phase has checkpoint confirming deliverable value
 
 ---
 
@@ -232,4 +276,3 @@ With multiple developers (recommend 2-3 for this size):
 - All file paths absolute per plan.md structure: src/, tests/, main.py at repo root
 - Manual tests verify against acceptance scenarios in spec.md
 - Validation: PEP 8 + modularity + no external imports check before final commit
-

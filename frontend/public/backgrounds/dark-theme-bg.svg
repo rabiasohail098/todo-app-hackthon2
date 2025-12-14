@@ -1,0 +1,54 @@
+<svg width="1920" height="1080" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="darkBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f0c29;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#302b63;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#24243e;stop-opacity:1" />
+    </linearGradient>
+    <radialGradient id="neon1">
+      <stop offset="0%" style="stop-color:#a78bfa;stop-opacity:0.9" />
+      <stop offset="100%" style="stop-color:#a78bfa;stop-opacity:0" />
+    </radialGradient>
+    <radialGradient id="neon2">
+      <stop offset="0%" style="stop-color:#ec4899;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#ec4899;stop-opacity:0" />
+    </radialGradient>
+    <radialGradient id="neon3">
+      <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:0.7" />
+      <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:0" />
+    </radialGradient>
+    <radialGradient id="neon4">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.6" />
+      <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:0" />
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="100" />
+      <feComponentTransfer>
+        <feFuncA type="discrete" tableValues="1 1"/>
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#darkBg)"/>
+  <!-- Neon glowing orbs -->
+  <circle cx="300" cy="250" r="500" fill="url(#neon1)" filter="url(#glow)"/>
+  <circle cx="1600" cy="800" r="600" fill="url(#neon2)" filter="url(#glow)"/>
+  <circle cx="950" cy="500" r="450" fill="url(#neon3)" filter="url(#glow)"/>
+  <circle cx="1450" cy="350" r="400" fill="url(#neon4)" filter="url(#glow)"/>
+  <circle cx="500" cy="800" r="420" fill="url(#neon1)" filter="url(#glow)"/>
+  <!-- Cyberpunk grid lines -->
+  <line x1="0" y1="540" x2="1920" y2="540" stroke="#a78bfa" stroke-width="1" opacity="0.1"/>
+  <line x1="960" y1="0" x2="960" y2="1080" stroke="#ec4899" stroke-width="1" opacity="0.1"/>
+  <!-- Floating sparkles -->
+  <circle cx="700" cy="150" r="8" fill="#a78bfa" opacity="0.8">
+    <animate attributeName="opacity" values="0.8;0.3;0.8" dur="3s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="1300" cy="350" r="6" fill="#ec4899" opacity="0.7">
+    <animate attributeName="opacity" values="0.7;0.2;0.7" dur="2.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="500" cy="550" r="10" fill="#06b6d4" opacity="0.9">
+    <animate attributeName="opacity" values="0.9;0.4;0.9" dur="3.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="1600" cy="700" r="7" fill="#f59e0b" opacity="0.6">
+    <animate attributeName="opacity" values="0.6;0.2;0.6" dur="2s" repeatCount="indefinite"/>
+  </circle>
+</svg>
