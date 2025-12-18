@@ -7,7 +7,7 @@ import TaskForm from "@/components/TaskForm";
 import TaskList from "@/components/TaskList";
 import { apiClient } from "@/lib/api";
 import { signOut } from "@/lib/auth-client";
-import { LogOut, Settings } from "lucide-react";
+import { LogOut, Settings, MessageSquare } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { useTranslation } from "@/hooks/useTranslation";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -74,31 +74,13 @@ export default function DashboardPage() {
     setError(null);
 
     try {
-      // TODO: Replace with actual API call when backend is ready
-      // const fetchedTasks = await apiClient.get<Task[]>("/api/tasks");
-
-      // Mock data for now
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      const mockTasks: Task[] = [
-        {
-          id: 1,
-          user_id: "mock-user-id",
-          title: "Complete project documentation",
-          description: "Write README and API docs",
-          is_completed: false,
-          created_at: new Date(Date.now() - 86400000).toISOString(),
-        },
-        {
-          id: 2,
-          user_id: "mock-user-id",
-          title: "Review pull requests",
-          description: null,
-          is_completed: true,
-          created_at: new Date(Date.now() - 172800000).toISOString(),
-        },
-      ];
-
-      setTasks(mockTasks);
+      // Fetch from our Next.js API route (shared store)
+      const response = await fetch("/api/tasks");
+      if (!response.ok) {
+        throw new Error("Failed to fetch tasks");
+      }
+      const fetchedTasks: Task[] = await response.json();
+      setTasks(fetchedTasks);
     } catch (err: any) {
       setError(err.message || "Failed to fetch tasks");
     } finally {
@@ -117,16 +99,23 @@ export default function DashboardPage() {
    * Handle task toggle.
    */
   const handleTaskToggle = async (taskId: number, isCompleted: boolean) => {
-    try {
-      // TODO: Replace with actual API call
-      // await apiClient.patch(`/api/tasks/${taskId}`, { is_completed: isCompleted });
+    // Optimistic UI update
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === taskId ? { ...task, is_completed: isCompleted } : task
+      )
+    );
 
-      // Optimistic UI update
-      setTasks((prev) =>
-        prev.map((task) =>
-          task.id === taskId ? { ...task, is_completed: isCompleted } : task
-        )
-      );
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_completed: isCompleted }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to toggle task");
+      }
     } catch (err: any) {
       setError(err.message || "Failed to toggle task");
       // Revert optimistic update
@@ -138,16 +127,23 @@ export default function DashboardPage() {
    * Handle task update.
    */
   const handleTaskUpdate = async (taskId: number, updates: TaskUpdate) => {
-    try {
-      // TODO: Replace with actual API call
-      // await apiClient.patch(`/api/tasks/${taskId}`, updates);
+    // Optimistic UI update
+    setTasks((prev) =>
+      prev.map((task) =>
+        task.id === taskId ? { ...task, ...updates } : task
+      )
+    );
 
-      // Optimistic UI update
-      setTasks((prev) =>
-        prev.map((task) =>
-          task.id === taskId ? { ...task, ...updates } : task
-        )
-      );
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update task");
+      }
     } catch (err: any) {
       setError(err.message || "Failed to update task");
       // Revert optimistic update
@@ -159,12 +155,17 @@ export default function DashboardPage() {
    * Handle task delete.
    */
   const handleTaskDelete = async (taskId: number) => {
-    try {
-      // TODO: Replace with actual API call
-      // await apiClient.delete(`/api/tasks/${taskId}`);
+    // Optimistic UI update
+    setTasks((prev) => prev.filter((task) => task.id !== taskId));
 
-      // Optimistic UI update
-      setTasks((prev) => prev.filter((task) => task.id !== taskId));
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok && response.status !== 204) {
+        throw new Error("Failed to delete task");
+      }
     } catch (err: any) {
       setError(err.message || "Failed to delete task");
       // Revert optimistic update
@@ -202,6 +203,16 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* AI Chat button */}
+            <button
+              onClick={() => router.push("/chat")}
+              className="flex items-center gap-2 px-4 py-3 glass hover:glass-strong rounded-xl transition-all transform hover:scale-105 group"
+              aria-label="AI Chat"
+            >
+              <MessageSquare size={20} className="text-purple-600 dark:text-purple-400 group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors" />
+              <span className="hidden sm:inline font-semibold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">AI Chat</span>
+            </button>
+
             {/* Settings dropdown */}
             <div className="relative" ref={settingsRef}>
               <button

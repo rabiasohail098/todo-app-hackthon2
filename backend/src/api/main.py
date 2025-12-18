@@ -116,9 +116,10 @@ async def root():
 
 
 # Import and include routers
-from .routes import health, tasks
+from .routes import health, tasks, chat
 app.include_router(health.router, tags=["Health"])
 app.include_router(tasks.router, prefix="/api", tags=["Tasks"])
+app.include_router(chat.router, prefix="/api", tags=["Chat"])
 
 
 if __name__ == "__main__":

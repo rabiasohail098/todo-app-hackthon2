@@ -59,20 +59,22 @@ export default function TaskForm({ onTaskAdded }: TaskFormProps) {
     setIsLoading(true);
 
     try {
-      // TODO: API call
-      // const newTask = await api.post<Task>("/api/tasks", formData);
+      // Call the API to create the task
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: formData.title,
+          description: formData.description || undefined,
+        }),
+      });
 
-      // Mock task creation
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      const newTask: Task = {
-        id: Date.now(),
-        user_id: "mock-user-id",
-        title: formData.title,
-        description: formData.description || null,
-        is_completed: false,
-        created_at: new Date().toISOString(),
-      };
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create task");
+      }
 
+      const newTask: Task = await response.json();
       onTaskAdded(newTask);
 
       // Clear form
