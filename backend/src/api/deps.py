@@ -6,7 +6,6 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlmodel import Session
 from jose import JWTError, jwt
 import os
-from uuid import UUID
 from dotenv import load_dotenv
 
 from ..db.session import get_session
@@ -41,7 +40,7 @@ def get_db() -> Generator[Session, None, None]:
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> UUID:
+) -> str:
     """Get current user from JWT token.
 
     This dependency extracts and validates the JWT token from the
@@ -51,15 +50,15 @@ async def get_current_user(
         credentials: HTTP Authorization credentials from Bearer token
 
     Returns:
-        UUID: User ID extracted from JWT token
+        str: User ID extracted from JWT token
 
     Raises:
         HTTPException: 401 if token is missing, invalid, or expired
 
     Example:
         @app.get("/api/tasks")
-        def get_tasks(user_id: UUID = Depends(get_current_user)):
-            return {"user_id": str(user_id)}
+        def get_tasks(user_id: str = Depends(get_current_user)):
+            return {"user_id": user_id}
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -79,15 +78,12 @@ async def get_current_user(
         )
 
         # Extract user_id from 'sub' claim (standard JWT claim for subject)
-        user_id_str: Optional[str] = payload.get("sub")
+        user_id: Optional[str] = payload.get("sub")
 
-        if user_id_str is None:
+        if user_id is None:
             raise credentials_exception
 
-        # Convert string to UUID
-        user_id = UUID(user_id_str)
-
-    except (JWTError, ValueError):
+    except JWTError:
         raise credentials_exception
 
     return user_id
@@ -97,7 +93,7 @@ async def get_current_user_optional(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(
         HTTPBearer(auto_error=False)
     ),
-) -> Optional[UUID]:
+) -> Optional[str]:
     """Get current user from JWT token if present (optional).
 
     This dependency is similar to get_current_user but doesn't raise
@@ -108,11 +104,11 @@ async def get_current_user_optional(
         credentials: HTTP Authorization credentials (optional)
 
     Returns:
-        UUID or None: User ID if token is valid, None otherwise
+        str or None: User ID if token is valid, None otherwise
 
     Example:
         @app.get("/api/public-tasks")
-        def get_public_tasks(user_id: Optional[UUID] = Depends(get_current_user_optional)):
+        def get_public_tasks(user_id: Optional[str] = Depends(get_current_user_optional)):
             if user_id:
                 return {"message": "Authenticated user"}
             return {"message": "Anonymous user"}
@@ -127,12 +123,12 @@ async def get_current_user_optional(
             JWT_SECRET,
             algorithms=[JWT_ALGORITHM]
         )
-        user_id_str: Optional[str] = payload.get("sub")
+        user_id: Optional[str] = payload.get("sub")
 
-        if user_id_str is None:
+        if user_id is None:
             return None
 
-        return UUID(user_id_str)
+        return user_id
 
-    except (JWTError, ValueError):
+    except JWTError:
         return None

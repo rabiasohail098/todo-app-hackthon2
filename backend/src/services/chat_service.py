@@ -1,207 +1,240 @@
-"""Chat service layer for AI chatbot business logic."""
+"""Chat service for managing AI chatbot conversations."""
 
-from typing import List, Optional
-from uuid import UUID
-from sqlmodel import Session, select
 from datetime import datetime
+from typing import List, Optional, Dict, Any
+from uuid import UUID
+from sqlalchemy.orm import Session
+from sqlalchemy import select, desc
 
 from ..models.conversation import Conversation
 from ..models.message import Message, MessageRole
+from ..agent.chat_agent import create_chat_agent
 
 
 class ChatService:
-    """
-    Chat service for handling AI chatbot business logic.
+    """Service for managing chat conversations and messages."""
 
-    All methods enforce user isolation - conversations and messages
-    are always filtered by user_id.
-    """
-
-    @staticmethod
-    def get_or_create_conversation(
-        session: Session, user_id: UUID
-    ) -> Conversation:
-        """
-        Get active conversation for user or create a new one.
+    def __init__(self, session: Session):
+        """Initialize chat service.
 
         Args:
             session: Database session
-            user_id: UUID of the authenticated user (from JWT)
+        """
+        self.session = session
+
+    def create_conversation(self, user_id: str) -> Conversation:
+        """Create a new conversation for user.
+
+        Args:
+            user_id: User ID
 
         Returns:
-            Active Conversation instance
-
-        Security:
-            user_id is ALWAYS from JWT token, never from request body
+            New conversation instance
         """
-        # Get most recent conversation for user
-        statement = (
-            select(Conversation)
-            .where(Conversation.user_id == user_id)
-            .order_by(Conversation.created_at.desc())
-            .limit(1)
-        )
-        conversation = session.exec(statement).first()
+        # Always create a new conversation
+        conversation = Conversation(user_id=user_id)
+        self.session.add(conversation)
+        self.session.commit()
+        self.session.refresh(conversation)
 
-        if conversation:
-            return conversation
-
-        # Create new conversation if none exists
-        conversation = Conversation(
-            user_id=user_id,
-            created_at=datetime.utcnow(),
-        )
-        session.add(conversation)
-        session.commit()
-        session.refresh(conversation)
         return conversation
 
-    @staticmethod
-    def create_conversation(
-        session: Session, user_id: UUID
-    ) -> Conversation:
-        """
-        Create a new conversation for user.
+    def get_conversation_history(
+        self, conversation_id: UUID, limit: int = 10
+    ) -> List[Message]:
+        """Get conversation history (last N messages).
 
         Args:
-            session: Database session
-            user_id: UUID of the authenticated user
+            conversation_id: Conversation ID
+            limit: Maximum number of messages to retrieve
 
         Returns:
-            New Conversation instance
-        """
-        conversation = Conversation(
-            user_id=user_id,
-            created_at=datetime.utcnow(),
-        )
-        session.add(conversation)
-        session.commit()
-        session.refresh(conversation)
-        return conversation
-
-    @staticmethod
-    def get_conversations_by_user(
-        session: Session, user_id: UUID
-    ) -> List[Conversation]:
-        """
-        Get all conversations for a user, ordered by created_at DESC.
-
-        Args:
-            session: Database session
-            user_id: UUID of the authenticated user
-
-        Returns:
-            List of Conversation instances
+            List of messages in chronological order
         """
         statement = (
-            select(Conversation)
-            .where(Conversation.user_id == user_id)
-            .order_by(Conversation.created_at.desc())
+            select(Message)
+            .where(Message.conversation_id == conversation_id)
+            .order_by(desc(Message.created_at))
+            .limit(limit)
         )
-        conversations = session.exec(statement).all()
-        return list(conversations)
 
-    @staticmethod
-    def get_conversation_by_id(
-        session: Session, conversation_id: UUID, user_id: UUID
-    ) -> Optional[Conversation]:
-        """
-        Get a specific conversation by ID if it belongs to the user.
+        result = self.session.execute(statement)
+        messages = result.scalars().all()
 
-        Args:
-            session: Database session
-            conversation_id: ID of the conversation
-            user_id: UUID of the authenticated user
+        # Reverse to get chronological order (oldest first)
+        return list(reversed(messages))
 
-        Returns:
-            Conversation instance if found and belongs to user, None otherwise
-        """
-        statement = select(Conversation).where(
-            Conversation.id == conversation_id,
-            Conversation.user_id == user_id
-        )
-        return session.exec(statement).first()
-
-    @staticmethod
     def save_message(
-        session: Session,
-        conversation_id: UUID,
-        role: MessageRole,
-        content: str
+        self, conversation_id: UUID, role: MessageRole, content: str
     ) -> Message:
-        """
-        Save a message to a conversation.
+        """Save a message to the database.
 
         Args:
-            session: Database session
-            conversation_id: ID of the conversation
-            role: Role of the message sender (user or assistant)
+            conversation_id: Conversation ID
+            role: Message role (user or assistant)
             content: Message content
 
         Returns:
-            Saved Message instance
+            Created message
         """
         message = Message(
             conversation_id=conversation_id,
             role=role,
-            content=content,
-            created_at=datetime.utcnow(),
+            content=content
         )
-        session.add(message)
-        session.commit()
-        session.refresh(message)
+        self.session.add(message)
+        self.session.commit()
+        self.session.refresh(message)
+
+        # Update conversation updated_at
+        statement = select(Conversation).where(Conversation.id == conversation_id)
+        result = self.session.execute(statement)
+        conversation = result.scalar_one()
+        conversation.updated_at = datetime.utcnow()
+        self.session.commit()
+
         return message
 
-    @staticmethod
-    def get_conversation_history(
-        session: Session,
-        conversation_id: UUID,
-        limit: int = 50
-    ) -> List[Message]:
-        """
-        Get message history for a conversation.
+    async def process_message(
+        self, user_id: str, message: str, conversation_id: Optional[UUID] = None, language: str = "en"
+    ) -> Dict[str, Any]:
+        """Process user message and get AI response.
+
+        This implements the stateless request cycle:
+        1. Get or create conversation
+        2. Save user message
+        3. Fetch conversation history for context
+        4. Initialize AI agent (fresh instance)
+        5. Process message with agent
+        6. Save assistant response
+        7. Return response
 
         Args:
-            session: Database session
-            conversation_id: ID of the conversation
-            limit: Maximum number of messages to return (default 50)
+            user_id: User ID
+            message: User's message
+            conversation_id: Optional conversation ID
+            language: User's preferred language (en or ur)
 
         Returns:
-            List of Message instances ordered by created_at ASC
+            Response dictionary with conversation_id, message_id, and AI response
         """
-        statement = (
-            select(Message)
-            .where(Message.conversation_id == conversation_id)
-            .order_by(Message.created_at.asc())
-            .limit(limit)
-        )
-        messages = session.exec(statement).all()
-        return list(messages)
+        # Step 1: Get or create conversation
+        if conversation_id:
+            statement = select(Conversation).where(
+                Conversation.id == conversation_id,
+                Conversation.user_id == user_id
+            )
+            result = self.session.execute(statement)
+            conversation = result.scalar_one_or_none()
+            if not conversation:
+                raise ValueError("Conversation not found or access denied")
+        else:
+            # Create new conversation when conversation_id is None
+            conversation = self.create_conversation(user_id)
 
-    @staticmethod
-    def get_recent_context(
-        session: Session,
-        conversation_id: UUID,
-        limit: int = 10
-    ) -> List[Message]:
-        """
-        Get recent messages for AI context window.
+        # Step 2: Save user message
+        user_message = self.save_message(
+            conversation.id, MessageRole.user, message
+        )
+
+        # Step 3: Fetch conversation history (for context)
+        history = self.get_conversation_history(conversation.id, limit=10)
+
+        # Step 4: Initialize AI agent (stateless - fresh instance)
+        print(f"Creating agent with language: {language}")
+        agent = create_chat_agent(self.session, user_id, language)
+
+        # Step 5: Process message
+        try:
+            response_data = await agent.process_message(message)
+            response_content = response_data.get("content", "I'm not sure how to help with that.")
+        except Exception as e:
+            response_content = f"Sorry, I encountered an error: {str(e)}"
+            response_data = {"type": "error", "content": response_content}
+
+        # Step 6: Save assistant response
+        assistant_message = self.save_message(
+            conversation.id, MessageRole.assistant, response_content
+        )
+
+        # Step 7: Return response
+        # Agent instance will be garbage collected (stateless)
+
+        # Prepare data - wrap lists in a dictionary for consistent response format
+        data = None
+        if "task" in response_data:
+            data = {"task": response_data["task"]}
+        elif "tasks" in response_data:
+            data = {"tasks": response_data["tasks"]}
+
+        return {
+            "conversation_id": str(conversation.id),
+            "message_id": str(assistant_message.id),
+            "response": response_content,
+            "type": response_data.get("type", "message"),
+            "data": data,
+        }
+
+    def get_all_messages(
+        self, conversation_id: UUID, user_id: str, limit: int = 50
+    ) -> List[Dict[str, Any]]:
+        """Get all messages from a conversation.
 
         Args:
-            session: Database session
-            conversation_id: ID of the conversation
-            limit: Number of recent messages (default 10)
+            conversation_id: Conversation ID
+            user_id: User ID (for authorization)
+            limit: Maximum number of messages
 
         Returns:
-            List of recent Message instances in chronological order
+            List of message dictionaries
         """
-        # Get last N messages
-        statement = (
-            select(Message)
-            .where(Message.conversation_id == conversation_id)
-            .order_by(Message.created_at.desc())
-            .limit(limit)
+        # Verify conversation belongs to user
+        statement = select(Conversation).where(
+            Conversation.id == conversation_id,
+            Conversation.user_id == user_id
         )
-        messages = session.exec(statement).all()
-        # Reverse for chronological order
-        return list(reversed(messages))
+        result = self.session.execute(statement)
+        conversation = result.scalar_one_or_none()
+
+        if not conversation:
+            raise ValueError("Conversation not found or access denied")
+
+        # Get messages
+        messages = self.get_conversation_history(conversation_id, limit)
+
+        return [
+            {
+                "id": str(msg.id),
+                "role": msg.role.value,
+                "content": msg.content,
+                "created_at": msg.created_at.isoformat(),
+            }
+            for msg in messages
+        ]
+
+    def get_user_conversations(self, user_id: str) -> List[Dict[str, Any]]:
+        """Get all conversations for a user.
+
+        Args:
+            user_id: User ID
+
+        Returns:
+            List of conversation summaries
+        """
+        statement = (
+            select(Conversation)
+            .where(Conversation.user_id == user_id)
+            .order_by(desc(Conversation.updated_at))
+        )
+
+        result = self.session.execute(statement)
+        conversations = result.scalars().all()
+
+        return [
+            {
+                "id": str(conv.id),
+                "created_at": conv.created_at.isoformat(),
+                "updated_at": conv.updated_at.isoformat(),
+            }
+            for conv in conversations
+        ]

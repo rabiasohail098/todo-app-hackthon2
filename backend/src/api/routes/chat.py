@@ -1,186 +1,264 @@
-"""Chat API routes for AI chatbot."""
+"""Chat API routes."""
 
-import logging
-from typing import List, Optional
+from typing import Optional, List, Dict, Any
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session
+from sqlalchemy.orm import Session
+from sqlalchemy import select, delete
 from pydantic import BaseModel, Field
 
-from ..deps import get_db, get_current_user
 from ...services.chat_service import ChatService
-from ...models.message import MessageRead, MessageRole
-from ...models.conversation import ConversationRead
-from ...agent.chat_agent import create_chat_agent
+from ...models.conversation import Conversation
+from ...models.message import Message
+from ..deps import get_db, get_current_user
 
-logger = logging.getLogger(__name__)
-
-router = APIRouter(prefix="/chat", tags=["Chat"])
+router = APIRouter()
 
 
+# Request/Response models
 class ChatRequest(BaseModel):
-    """Request body for chat message."""
+    """Request model for chat endpoint."""
     message: str = Field(..., min_length=1, max_length=10000)
-    conversation_id: Optional[UUID] = None
+    conversation_id: Optional[str] = None
+    language: str = Field(default="en", pattern="^(en|ur)$")
 
 
 class ChatResponse(BaseModel):
-    """Response from chat endpoint."""
-    id: UUID
-    conversation_id: UUID
+    """Response model for chat endpoint."""
+    conversation_id: str
+    message_id: str
+    response: str
+    type: str
+    data: Optional[Dict[str, Any]] = None
+
+
+class MessageResponse(BaseModel):
+    """Response model for a single message."""
+    id: str
     role: str
     content: str
     created_at: str
 
 
-@router.post("", response_model=ChatResponse)
-async def send_chat_message(
+class ConversationMessagesResponse(BaseModel):
+    """Response model for conversation messages."""
+    conversation_id: str
+    messages: List[MessageResponse]
+
+
+@router.post("/", response_model=ChatResponse)
+async def send_message(
     request: ChatRequest,
-    user_id: UUID = Depends(get_current_user),
-    session: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
 ):
+    """Send a message to the AI chatbot and get a response.
+
+    Args:
+        request: Chat request with message and optional conversation_id
+        db: Database session
+        current_user: Authenticated user ID from JWT
+
+    Returns:
+        AI response with conversation and message IDs
     """
-    Send a chat message and get AI response.
+    user_id = current_user
 
-    Security:
-    - user_id comes from JWT token, not from request body
-    - All operations are scoped to the authenticated user
-    """
-    # Get or create conversation
-    if request.conversation_id:
-        conversation = ChatService.get_conversation_by_id(
-            session, request.conversation_id, user_id
-        )
-        if not conversation:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Conversation not found"
-            )
-    else:
-        conversation = ChatService.get_or_create_conversation(session, user_id)
+    print(f"=== CHAT REQUEST ===")
+    print(f"User ID: {user_id}")
+    print(f"Message: {request.message[:50]}...")
+    print(f"Language: {request.language}")
+    print(f"===================")
 
-    # Save user message
-    user_message = ChatService.save_message(
-        session,
-        conversation.id,
-        MessageRole.user,
-        request.message
-    )
+    chat_service = ChatService(db)
 
-    # Get conversation history for context
-    history = ChatService.get_recent_context(session, conversation.id, limit=10)
-    conversation_history = [
-        {"role": msg.role.value, "content": msg.content}
-        for msg in history
-        if msg.id != user_message.id  # Exclude the just-saved message
-    ]
-
-    # Process with AI agent
     try:
-        agent = create_chat_agent(session, user_id)
-        ai_response_content = agent.process_message(
-            request.message,
-            conversation_history
+        # Convert conversation_id to UUID if provided
+        conversation_uuid = None
+        if request.conversation_id:
+            try:
+                conversation_uuid = UUID(request.conversation_id)
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid conversation ID format"
+                )
+
+        # Process message (stateless request cycle)
+        result = await chat_service.process_message(
+            user_id=user_id,
+            message=request.message,
+            conversation_id=conversation_uuid,
+            language=request.language
+        )
+
+        return ChatResponse(**result)
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
         )
     except Exception as e:
-        logger.error(f"AI agent error: {str(e)}")
-        ai_response_content = "I apologize, but I'm having trouble processing your request right now. Please try again."
-
-    # Save AI response
-    ai_message = ChatService.save_message(
-        session,
-        conversation.id,
-        MessageRole.assistant,
-        ai_response_content
-    )
-
-    return ChatResponse(
-        id=ai_message.id,
-        conversation_id=conversation.id,
-        role=ai_message.role.value,
-        content=ai_message.content,
-        created_at=ai_message.created_at.isoformat()
-    )
-
-
-@router.get("/history", response_model=List[MessageRead])
-async def get_chat_history(
-    conversation_id: Optional[UUID] = None,
-    user_id: UUID = Depends(get_current_user),
-    session: Session = Depends(get_db)
-):
-    """
-    Get chat history for the current conversation.
-
-    Security:
-    - Only returns messages from conversations owned by the authenticated user
-    """
-    # Get conversation
-    if conversation_id:
-        conversation = ChatService.get_conversation_by_id(
-            session, conversation_id, user_id
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error processing message: {str(e)}"
         )
+
+
+@router.get("/conversations/{conversation_id}/messages", response_model=ConversationMessagesResponse)
+def get_conversation_messages(
+    conversation_id: str,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+    limit: int = 50,
+):
+    """Get all messages from a conversation.
+
+    Args:
+        conversation_id: Conversation UUID
+        db: Database session
+        current_user: Authenticated user ID from JWT
+        limit: Maximum number of messages to retrieve
+
+    Returns:
+        List of messages in chronological order
+    """
+    user_id = current_user
+
+    print(f"Getting messages for conversation: {conversation_id}")
+
+    try:
+        conversation_uuid = UUID(conversation_id)
+    except ValueError as e:
+        print(f"Invalid UUID format: {conversation_id}, error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid conversation ID format: {conversation_id}"
+        )
+
+    chat_service = ChatService(db)
+
+    try:
+        messages = chat_service.get_all_messages(
+            conversation_id=conversation_uuid,
+            user_id=user_id,
+            limit=limit
+        )
+
+        return ConversationMessagesResponse(
+            conversation_id=conversation_id,
+            messages=[MessageResponse(**msg) for msg in messages]
+        )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error retrieving messages: {str(e)}"
+        )
+
+
+@router.get("/conversations")
+def get_user_conversations(
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    """Get all conversations for the authenticated user.
+
+    Args:
+        db: Database session
+        current_user: Authenticated user ID from JWT
+
+    Returns:
+        List of user's conversations
+    """
+    user_id = current_user
+
+    chat_service = ChatService(db)
+
+    try:
+        conversations = chat_service.get_user_conversations(user_id)
+        return {"conversations": conversations}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error retrieving conversations: {str(e)}"
+        )
+
+
+@router.delete("/conversations/{conversation_id}")
+def delete_conversation(
+    conversation_id: str,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),
+):
+    """Delete a conversation.
+
+    Args:
+        conversation_id: Conversation UUID
+        db: Database session
+        current_user: Authenticated user ID from JWT
+
+    Returns:
+        Success message
+    """
+    user_id = current_user
+
+    print(f"Deleting conversation: {conversation_id} for user: {user_id}")
+
+    try:
+        conversation_uuid = UUID(conversation_id)
+    except ValueError as e:
+        print(f"Invalid UUID format: {conversation_id}, error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid conversation ID format: {conversation_id}"
+        )
+
+    try:
+        # Verify conversation belongs to user
+        statement = select(Conversation).where(
+            Conversation.id == conversation_uuid,
+            Conversation.user_id == user_id
+        )
+        result = db.execute(statement)
+        conversation = result.scalar_one_or_none()
+
         if not conversation:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Conversation not found"
+                detail="Conversation not found or access denied"
             )
-    else:
-        conversation = ChatService.get_or_create_conversation(session, user_id)
 
-    # Get message history
-    messages = ChatService.get_conversation_history(session, conversation.id)
-
-    return [
-        MessageRead(
-            id=msg.id,
-            conversation_id=msg.conversation_id,
-            role=msg.role,
-            content=msg.content,
-            created_at=msg.created_at
+        # Delete all messages first (cascade)
+        delete_messages_stmt = delete(Message).where(
+            Message.conversation_id == conversation_uuid
         )
-        for msg in messages
-    ]
+        messages_result = db.execute(delete_messages_stmt)
+        print(f"Deleted {messages_result.rowcount} messages")
 
-
-@router.get("/conversations", response_model=List[ConversationRead])
-async def get_conversations(
-    user_id: UUID = Depends(get_current_user),
-    session: Session = Depends(get_db)
-):
-    """
-    Get all conversations for the current user.
-
-    Security:
-    - Only returns conversations owned by the authenticated user
-    """
-    conversations = ChatService.get_conversations_by_user(session, user_id)
-
-    return [
-        ConversationRead(
-            id=conv.id,
-            user_id=conv.user_id,
-            created_at=conv.created_at
+        # Delete conversation
+        delete_conv_stmt = delete(Conversation).where(
+            Conversation.id == conversation_uuid
         )
-        for conv in conversations
-    ]
+        db.execute(delete_conv_stmt)
+        db.commit()
 
+        print(f"Conversation {conversation_id} deleted successfully")
+        return {"message": "Conversation deleted successfully"}
 
-@router.post("/conversations", response_model=ConversationRead)
-async def create_conversation(
-    user_id: UUID = Depends(get_current_user),
-    session: Session = Depends(get_db)
-):
-    """
-    Create a new conversation.
-
-    Security:
-    - Conversation is created for the authenticated user only
-    """
-    conversation = ChatService.create_conversation(session, user_id)
-
-    return ConversationRead(
-        id=conversation.id,
-        user_id=conversation.user_id,
-        created_at=conversation.created_at
-    )
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"Error deleting conversation: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error deleting conversation: {str(e)}"
+        )

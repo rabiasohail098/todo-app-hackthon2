@@ -208,3 +208,6 @@ Wait for consent; never auto-create ADRs. Group related decisions (stacks, authe
 
 ## Code Standards
 See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.
+
+## Qwen Added Memories
+- OpenRouter API configuration: OPENAI_API_KEY=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, OPENAI_BASE_URL=https://openrouter.ai/api/v1

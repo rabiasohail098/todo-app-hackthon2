@@ -1,7 +1,6 @@
 """Task service layer for business logic."""
 
 from typing import List, Optional
-from uuid import UUID
 from sqlmodel import Session, select
 from datetime import datetime
 
@@ -17,7 +16,7 @@ class TaskService:
 
     @staticmethod
     def create_task(
-        session: Session, task_data: TaskCreate, user_id: UUID
+        session: Session, task_data: TaskCreate, user_id: str
     ) -> Task:
         """
         Create a new task for a user.
@@ -46,7 +45,7 @@ class TaskService:
         return task
 
     @staticmethod
-    def get_tasks_by_user(session: Session, user_id: UUID) -> List[Task]:
+    def get_tasks_by_user(session: Session, user_id: str) -> List[Task]:
         """
         Get all tasks for a user, ordered by created_at DESC.
 
@@ -70,7 +69,7 @@ class TaskService:
 
     @staticmethod
     def get_task_by_id(
-        session: Session, task_id: int, user_id: UUID
+        session: Session, task_id: int, user_id: str
     ) -> Optional[Task]:
         """
         Get a specific task by ID if it belongs to the user.
@@ -94,7 +93,7 @@ class TaskService:
 
     @staticmethod
     def update_task(
-        session: Session, task_id: int, user_id: UUID, task_data: TaskUpdate
+        session: Session, task_id: int, user_id: str, task_data: TaskUpdate
     ) -> Optional[Task]:
         """
         Update a task if it belongs to the user.
@@ -129,7 +128,7 @@ class TaskService:
         return task
 
     @staticmethod
-    def delete_task(session: Session, task_id: int, user_id: UUID) -> bool:
+    def delete_task(session: Session, task_id: int, user_id: str) -> bool:
         """
         Delete a task if it belongs to the user.
 

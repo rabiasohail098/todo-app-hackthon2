@@ -17,33 +17,35 @@ class ConversationBase(SQLModel):
 class Conversation(ConversationBase, table=True):
     """Database model for Conversation entity.
 
-    Represents a chat session between a user and the AI assistant.
+    Represents a chat conversation session between user and AI assistant.
 
     Attributes:
         id: Unique conversation identifier (UUID)
-        user_id: Owner of the conversation (from JWT)
-        created_at: When conversation was started
+        user_id: Owner of the conversation
+        created_at: When conversation started
+        updated_at: When conversation was last modified
+        messages: Related messages in this conversation
     """
     __tablename__ = "conversations"
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)
-    user_id: UUID = Field(index=True, nullable=False)
+    user_id: str = Field(index=True, nullable=False, max_length=255)
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
     # Relationships
     messages: List["Message"] = Relationship(back_populates="conversation")
 
 
 class ConversationCreate(SQLModel):
-    """Schema for creating a conversation.
-
-    Note: user_id is assigned by server from JWT, not from request body.
-    """
-    pass
+    """Schema for creating a conversation."""
+    pass  # Auto-created from user_id
 
 
 class ConversationRead(SQLModel):
     """Schema for reading a conversation."""
     id: UUID
-    user_id: UUID
+    user_id: str
     created_at: datetime
+    updated_at: datetime
+    message_count: Optional[int] = None

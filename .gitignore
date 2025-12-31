@@ -50,3 +50,19 @@ htmlcov/
 *.log
 .env
 .env.local
+
+# Node.js / JavaScript / TypeScript
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.next/
+out/
+.turbo/
+dist/
+*.tsbuildinfo
+.eslintcache
+
+# Testing (JavaScript)
+coverage/
+.nyc_output/

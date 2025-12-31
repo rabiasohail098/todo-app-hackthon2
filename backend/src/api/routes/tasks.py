@@ -1,7 +1,6 @@
 """Task API endpoints."""
 
 from typing import List
-from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
 
@@ -20,7 +19,7 @@ router = APIRouter()
 )
 async def create_task(
     task_data: TaskCreate,
-    current_user_id: UUID = Depends(get_current_user),
+    current_user_id: str = Depends(get_current_user),
     session: Session = Depends(get_db),
 ) -> Task:
     """
@@ -48,7 +47,7 @@ async def create_task(
     summary="Get all tasks for current user",
 )
 async def get_tasks(
-    current_user_id: UUID = Depends(get_current_user),
+    current_user_id: str = Depends(get_current_user),
     session: Session = Depends(get_db),
 ) -> List[Task]:
     """
@@ -76,7 +75,7 @@ async def get_tasks(
 )
 async def get_task(
     task_id: int,
-    current_user_id: UUID = Depends(get_current_user),
+    current_user_id: str = Depends(get_current_user),
     session: Session = Depends(get_db),
 ) -> Task:
     """
@@ -115,7 +114,7 @@ async def get_task(
 async def update_task(
     task_id: int,
     task_data: TaskUpdate,
-    current_user_id: UUID = Depends(get_current_user),
+    current_user_id: str = Depends(get_current_user),
     session: Session = Depends(get_db),
 ) -> Task:
     """
@@ -154,7 +153,7 @@ async def update_task(
 )
 async def delete_task(
     task_id: int,
-    current_user_id: UUID = Depends(get_current_user),
+    current_user_id: str = Depends(get_current_user),
     session: Session = Depends(get_db),
 ) -> None:
     """

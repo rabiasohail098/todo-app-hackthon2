@@ -1,200 +1,480 @@
-"""OpenAI-based chat agent for task management.
+"""OpenRouter-based chat agent for task management."""
 
-This agent uses OpenAI's function calling to interact with MCP tools
-for task management operations.
-"""
-
-import os
 import json
-import logging
-from typing import List, Dict, Any, Optional
-from uuid import UUID
-from openai import OpenAI
-from sqlmodel import Session
+import os
+from typing import Any, Dict, List
 
-from ..mcp.tools import get_all_tools, BaseMCPTool
-from ..mcp.base import MCPToolResult
+import httpx
+from sqlalchemy.orm import Session
 
-logger = logging.getLogger(__name__)
-
-# System prompt for the AI agent
-SYSTEM_PROMPT = """You are a helpful AI assistant for managing tasks. You help users create, view, update, complete, and delete their tasks using natural language.
-
-Available actions:
-1. Add a new task - use add_task when user wants to create a task
-2. View tasks - use list_tasks when user wants to see their tasks
-3. Complete a task - use complete_task when user wants to mark a task as done
-4. Delete a task - use delete_task when user wants to remove a task
-5. Update a task - use update_task when user wants to change a task's title or description
-
-Guidelines:
-- Always be helpful and friendly
-- When adding tasks, extract the title and any description from the user's message
-- When the user refers to tasks by name, try to match with existing tasks
-- Confirm actions after they are completed
-- If an action fails, explain the error in a user-friendly way
-- If the user's intent is unclear, ask for clarification
-
-Remember: You have access to tools to manage tasks. Use them to help the user!"""
+from ..services.task_service import TaskService
+from ..models.task import TaskCreate, TaskUpdate
 
 
 class ChatAgent:
-    """AI agent for processing chat messages and executing task operations."""
+    """Chat agent using OpenRouter API."""
 
-    def __init__(self, session: Session, user_id: UUID):
-        """Initialize the chat agent.
+    def __init__(self, session: Session, user_id: str, language: str = "en"):
+        """Initialize chat agent.
 
         Args:
-            session: Database session for tool operations
-            user_id: UUID of the authenticated user (from JWT)
+            session: Database session
+            user_id: User ID for task operations
+            language: User's preferred language (en or ur)
         """
         self.session = session
         self.user_id = user_id
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        self.tools = get_all_tools(session)
-        self.tool_map = {tool.name: tool for tool in self.tools}
+        self.language = language
+        self.api_key = os.getenv("OPENAI_API_KEY")  # OpenRouter API key
+        self.base_url = os.getenv(
+            "OPENAI_BASE_URL", "https://openrouter.ai/api/v1"
+        )
+        self.model = os.getenv("AI_MODEL", "meta-llama/llama-3.3-70b-instruct:free")
 
-    def _get_openai_tools(self) -> List[Dict[str, Any]]:
-        """Convert MCP tools to OpenAI function format."""
-        return [
-            {
-                "type": "function",
-                "function": {
-                    "name": tool.name,
-                    "description": tool.description,
-                    "parameters": tool.parameters
-                }
-            }
-            for tool in self.tools
-        ]
+        # Debug logging
+        print(f"ChatAgent initialized:")
+        print(f"  Language: {self.language}")
+        print(f"  API Key: {self.api_key[:20] if self.api_key else 'MISSING'}...")
+        print(f"  Base URL: {self.base_url}")
+        print(f"  Model: {self.model}")
 
-    def _execute_tool(self, tool_name: str, arguments: Dict[str, Any]) -> str:
-        """Execute an MCP tool and return the result as a string.
+    def _get_system_prompt(self) -> str:
+        """Get system prompt for the AI agent."""
+        if self.language == "ur":
+            return """You are a helpful task management assistant. You help users manage their todo tasks.
+
+🔴🔴🔴 MANDATORY LANGUAGE RULE 🔴🔴🔴
+RESPOND ONLY IN URDU (اردو)
+استعمال کریں صرف اردو زبان
+NO ENGLISH TEXT ALLOWED!
+🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴🔴
+
+Example correct response:
+User: "add task buy milk"
+You: "میں نے آپ کا ٹاسک 'buy milk' شامل کر دیا ہے۔"
+
+Example WRONG response (DO NOT DO THIS):
+You: "I have added your task" ❌ WRONG!
+
+Available actions:
+- Create a task: When user wants to add/create a task
+- List tasks: When user wants to see/view their tasks (all, completed, or incomplete)
+- Complete a task: When user wants to mark a task as done
+- Uncomplete a task: When user wants to mark a task as not done (unmark/incomplete)
+- Delete a task: When user wants to remove a task
+- Update a task: When user wants to modify a task title or description
+
+IMPORTANT: When listing tasks, ALWAYS include task IDs in your response so users can reference them.
+
+When the user requests an action, respond with a JSON object:
+
+CREATE TASK:
+{{"action": "create_task", "title": "task title", "description": "optional description"}}
+
+LIST ALL TASKS:
+{{"action": "list_tasks", "filter": "all"}}
+
+LIST COMPLETED TASKS ONLY:
+{{"action": "list_tasks", "filter": "completed"}}
+
+LIST INCOMPLETE/PENDING TASKS:
+{{"action": "list_tasks", "filter": "incomplete"}}
+
+MARK TASK AS COMPLETE:
+{{"action": "complete_task", "task_id": 123}}
+
+MARK TASK AS INCOMPLETE (UNMARK):
+{{"action": "uncomplete_task", "task_id": 123}}
+
+DELETE TASK:
+{{"action": "delete_task", "task_id": 123}}
+
+UPDATE TASK:
+{{"action": "update_task", "task_id": 123, "title": "new title", "description": "new description"}}
+
+If you're just chatting or need clarification, respond normally without JSON.
+Be friendly and helpful! Always mention task IDs when listing tasks.
+
+REMEMBER: RESPOND IN URDU (اردو) ONLY! صرف اردو میں جواب دیں!"""
+        else:
+            return """You are a helpful task management assistant. You help users manage their todo tasks.
+
+LANGUAGE: English
+Respond in clear, natural English.
+
+Available actions:
+- Create a task: When user wants to add/create a task
+- List tasks: When user wants to see/view their tasks (all, completed, or incomplete)
+- Complete a task: When user wants to mark a task as done
+- Uncomplete a task: When user wants to mark a task as not done (unmark/incomplete)
+- Delete a task: When user wants to remove a task
+- Update a task: When user wants to modify a task title or description
+
+IMPORTANT: When listing tasks, ALWAYS include task IDs in your response so users can reference them.
+
+When the user requests an action, respond with a JSON object:
+
+CREATE TASK:
+{{"action": "create_task", "title": "task title", "description": "optional description"}}
+
+LIST ALL TASKS:
+{{"action": "list_tasks", "filter": "all"}}
+
+LIST COMPLETED TASKS ONLY:
+{{"action": "list_tasks", "filter": "completed"}}
+
+LIST INCOMPLETE/PENDING TASKS:
+{{"action": "list_tasks", "filter": "incomplete"}}
+
+MARK TASK AS COMPLETE:
+{{"action": "complete_task", "task_id": 123}}
+
+MARK TASK AS INCOMPLETE (UNMARK):
+{{"action": "uncomplete_task", "task_id": 123}}
+
+DELETE TASK:
+{{"action": "delete_task", "task_id": 123}}
+
+UPDATE TASK:
+{{"action": "update_task", "task_id": 123, "title": "new title", "description": "new description"}}
+
+If you're just chatting or need clarification, respond normally without JSON.
+Be friendly and helpful! Always mention task IDs when listing tasks."""
+
+    async def _translate_to_urdu(self, english_text: str) -> str:
+        """Translate English response to Urdu as fallback.
 
         Args:
-            tool_name: Name of the tool to execute
-            arguments: Tool arguments from OpenAI
+            english_text: English text to translate
 
         Returns:
-            String representation of the tool result
+            Urdu translation
         """
-        tool = self.tool_map.get(tool_name)
-        if not tool:
-            return json.dumps({
-                "success": False,
-                "error": f"Unknown tool: {tool_name}"
-            })
+        translation_prompt = f"""Translate this English text to natural Urdu:
+
+English: {english_text}
+
+Urdu (only output the translation, nothing else):"""
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost:3000",
+            "X-Title": "Todo App AI Assistant",
+        }
+
+        data = {
+            "model": self.model,
+            "messages": [
+                {"role": "user", "content": translation_prompt}
+            ],
+            "temperature": 0.3,
+        }
 
         try:
-            # Execute tool with user_id (security: always from JWT, not AI)
-            result = tool.execute(self.user_id, **arguments)
-            return json.dumps(result.to_dict())
-        except Exception as e:
-            logger.error(f"Tool execution error: {tool_name} - {str(e)}")
-            return json.dumps({
-                "success": False,
-                "error": f"Tool execution failed: {str(e)}"
-            })
-
-    def process_message(
-        self,
-        user_message: str,
-        conversation_history: List[Dict[str, str]]
-    ) -> str:
-        """Process a user message and return the AI response.
-
-        Args:
-            user_message: The user's message
-            conversation_history: Previous messages for context
-
-        Returns:
-            AI response string
-        """
-        # Build messages for OpenAI
-        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-
-        # Add conversation history
-        for msg in conversation_history:
-            messages.append({
-                "role": msg["role"],
-                "content": msg["content"]
-            })
-
-        # Add current user message
-        messages.append({"role": "user", "content": user_message})
-
-        try:
-            # Call OpenAI with tools
-            response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=messages,
-                tools=self._get_openai_tools(),
-                tool_choice="auto"
-            )
-
-            message = response.choices[0].message
-
-            # Handle tool calls
-            if message.tool_calls:
-                # Process each tool call
-                tool_results = []
-                for tool_call in message.tool_calls:
-                    tool_name = tool_call.function.name
-                    arguments = json.loads(tool_call.function.arguments)
-
-                    logger.info(f"Executing tool: {tool_name} with args: {arguments}")
-
-                    result = self._execute_tool(tool_name, arguments)
-                    tool_results.append({
-                        "tool_call_id": tool_call.id,
-                        "role": "tool",
-                        "content": result
-                    })
-
-                # Add assistant message with tool calls
-                messages.append({
-                    "role": "assistant",
-                    "content": message.content,
-                    "tool_calls": [
-                        {
-                            "id": tc.id,
-                            "type": "function",
-                            "function": {
-                                "name": tc.function.name,
-                                "arguments": tc.function.arguments
-                            }
-                        }
-                        for tc in message.tool_calls
-                    ]
-                })
-
-                # Add tool results
-                messages.extend(tool_results)
-
-                # Get final response
-                final_response = self.client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=messages
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/chat/completions",
+                    headers=headers,
+                    json=data
                 )
-
-                return final_response.choices[0].message.content
-
-            # No tool calls, return direct response
-            return message.content
-
+                response.raise_for_status()
+                result = response.json()
+                translated = result["choices"][0]["message"]["content"].strip()
+                print(f"Translated to Urdu: {translated}")
+                return translated
         except Exception as e:
-            logger.error(f"Chat agent error: {str(e)}")
-            return f"I apologize, but I encountered an error processing your request. Please try again. Error: {str(e)}"
+            print(f"Translation failed: {e}")
+            return english_text
+
+    async def process_message(self, message: str) -> Dict[str, Any]:
+        """Process user message and execute appropriate action.
+
+        Args:
+            message: User's message
+
+        Returns:
+            Response with action result
+        """
+        # Call OpenRouter API to understand user intent
+        response = await self._call_openrouter(message)
+
+        # Try to parse JSON action from response
+        try:
+            action_data = self._extract_json(response)
+            if action_data and "action" in action_data:
+                result = await self._execute_action(action_data)
+
+                # Translate response to Urdu if needed
+                if self.language == "ur" and "content" in result:
+                    # Check if response is in English (simple heuristic)
+                    if any(c.isascii() and c.isalpha() for c in result["content"][:50]):
+                        print(f"Response appears to be in English, translating...")
+                        result["content"] = await self._translate_to_urdu(result["content"])
+
+                return result
+        except Exception as e:
+            print(f"Action parsing error: {e}")
+            pass
+
+        # No action detected, translate chat response if Urdu
+        if self.language == "ur":
+            # Check if response contains significant English text
+            english_chars = sum(1 for c in response[:100] if c.isascii() and c.isalpha())
+            if english_chars > 20:  # If more than 20 English letters
+                print(f"Chat response in English, translating...")
+                response = await self._translate_to_urdu(response)
+
+        return {"type": "message", "content": response}
+
+    async def _call_openrouter(self, message: str) -> str:
+        """Call OpenRouter API.
+
+        Args:
+            message: User message
+
+        Returns:
+            AI response text
+        """
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost:3000",
+            "X-Title": "Todo App AI Assistant",
+        }
+
+        # Add language reminder to user message for Urdu
+        if self.language == "ur":
+            enhanced_message = f"[RESPOND IN URDU ONLY] {message}"
+        else:
+            enhanced_message = message
+
+        data = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": self._get_system_prompt()},
+                {"role": "user", "content": enhanced_message},
+            ],
+        }
+
+        print(f"Calling OpenRouter API:")
+        print(f"  URL: {self.base_url}/chat/completions")
+        print(f"  Model: {self.model}")
+        print(f"  API Key present: {bool(self.api_key)}")
+        print(f"  Headers: {list(headers.keys())}")
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            try:
+                response = await client.post(
+                    f"{self.base_url}/chat/completions", headers=headers, json=data
+                )
+                print(f"  Response status: {response.status_code}")
+                response.raise_for_status()
+                result = response.json()
+                return result["choices"][0]["message"]["content"]
+            except httpx.HTTPStatusError as e:
+                # Log the error response for debugging
+                error_detail = e.response.text if hasattr(e.response, 'text') else str(e)
+                print(f"OpenRouter API Error: {e.response.status_code}")
+                print(f"Error detail: {error_detail}")
+                raise Exception(f"OpenRouter API error: {e.response.status_code}")
+
+    def _extract_json(self, text: str) -> Dict[str, Any] | None:
+        """Extract JSON object from text.
+
+        Args:
+            text: Text that may contain JSON
+
+        Returns:
+            Parsed JSON object or None
+        """
+        # Try to find JSON in the text
+        start = text.find("{")
+        end = text.rfind("}")
+        if start != -1 and end != -1:
+            json_str = text[start : end + 1]
+            try:
+                return json.loads(json_str)
+            except json.JSONDecodeError:
+                pass
+        return None
+
+    async def _execute_action(self, action_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute task action.
+
+        Args:
+            action_data: Action data with action type and parameters
+
+        Returns:
+            Action result
+        """
+        action = action_data.get("action")
+
+        try:
+            if action == "create_task":
+                title = action_data.get("title", "")
+                description = action_data.get("description", "")
+                task_data = TaskCreate(
+                    title=title,
+                    description=description or None,
+                    is_completed=False
+                )
+                task = TaskService.create_task(
+                    self.session, task_data, self.user_id
+                )
+                return {
+                    "type": "task_created",
+                    "content": f"✓ Created task: {task.title}",
+                    "task": {
+                        "id": task.id,
+                        "title": task.title,
+                        "description": task.description,
+                        "is_completed": task.is_completed,
+                    },
+                }
+
+            elif action == "list_tasks":
+                # Get all tasks from database
+                all_tasks = TaskService.get_tasks_by_user(self.session, self.user_id)
+
+                # Apply filter
+                task_filter = action_data.get("filter", "all").lower()
+                if task_filter == "completed":
+                    tasks = [t for t in all_tasks if t.is_completed]
+                    filter_label = "completed"
+                elif task_filter == "incomplete":
+                    tasks = [t for t in all_tasks if not t.is_completed]
+                    filter_label = "incomplete/pending"
+                else:
+                    tasks = all_tasks
+                    filter_label = "all"
+
+                if not tasks:
+                    return {
+                        "type": "message",
+                        "content": f"You have no {filter_label} tasks."
+                    }
+
+                task_list = "\n".join(
+                    [
+                        f"{i+1}. [{('✓' if t.is_completed else ' ')}] {t.title} (ID: {t.id})"
+                        for i, t in enumerate(tasks)
+                    ]
+                )
+                return {
+                    "type": "task_list",
+                    "content": f"Your {filter_label} tasks:\n{task_list}",
+                    "tasks": [
+                        {
+                            "id": t.id,
+                            "title": t.title,
+                            "description": t.description,
+                            "is_completed": t.is_completed,
+                        }
+                        for t in tasks
+                    ],
+                }
+
+            elif action == "complete_task":
+                task_id = action_data.get("task_id")
+                if not task_id:
+                    return {"type": "error", "content": "Task ID is required."}
+
+                task_data = TaskUpdate(is_completed=True)
+                task = TaskService.update_task(
+                    self.session, task_id, self.user_id, task_data
+                )
+                if not task:
+                    return {"type": "error", "content": f"Task {task_id} not found."}
+
+                return {
+                    "type": "task_completed",
+                    "content": f"✓ Completed task: {task.title}",
+                    "task": {
+                        "id": task.id,
+                        "title": task.title,
+                        "is_completed": task.is_completed,
+                    },
+                }
+
+            elif action == "uncomplete_task":
+                task_id = action_data.get("task_id")
+                if not task_id:
+                    return {"type": "error", "content": "Task ID is required."}
+
+                task_data = TaskUpdate(is_completed=False)
+                task = TaskService.update_task(
+                    self.session, task_id, self.user_id, task_data
+                )
+                if not task:
+                    return {"type": "error", "content": f"Task {task_id} not found."}
+
+                return {
+                    "type": "task_uncompleted",
+                    "content": f"✓ Marked task as incomplete: {task.title}",
+                    "task": {
+                        "id": task.id,
+                        "title": task.title,
+                        "is_completed": task.is_completed,
+                    },
+                }
+
+            elif action == "delete_task":
+                task_id = action_data.get("task_id")
+                if not task_id:
+                    return {"type": "error", "content": "Task ID is required."}
+
+                success = TaskService.delete_task(self.session, task_id, self.user_id)
+                if not success:
+                    return {"type": "error", "content": f"Task {task_id} not found."}
+
+                return {
+                    "type": "task_deleted",
+                    "content": f"✓ Deleted task ID {task_id}",
+                }
+
+            elif action == "update_task":
+                task_id = action_data.get("task_id")
+                if not task_id:
+                    return {"type": "error", "content": "Task ID is required."}
+
+                title = action_data.get("title")
+                description = action_data.get("description")
+                task_data = TaskUpdate(title=title, description=description)
+                task = TaskService.update_task(
+                    self.session, task_id, self.user_id, task_data
+                )
+                if not task:
+                    return {"type": "error", "content": f"Task {task_id} not found."}
+
+                return {
+                    "type": "task_updated",
+                    "content": f"✓ Updated task: {task.title}",
+                    "task": {
+                        "id": task.id,
+                        "title": task.title,
+                        "description": task.description,
+                    },
+                }
+
+            else:
+                return {"type": "error", "content": f"Unknown action: {action}"}
+
+        except ValueError as e:
+            return {"type": "error", "content": str(e)}
+        except Exception as e:
+            return {"type": "error", "content": f"Error: {str(e)}"}
 
 
-def create_chat_agent(session: Session, user_id: UUID) -> ChatAgent:
-    """Factory function to create a ChatAgent.
+def create_chat_agent(session: Session, user_id: str, language: str = "en") -> ChatAgent:
+    """Factory function to create a chat agent.
 
     Args:
         session: Database session
-        user_id: UUID of the authenticated user
+        user_id: User ID
+        language: User's preferred language (en or ur)
 
     Returns:
         ChatAgent instance
     """
-    return ChatAgent(session, user_id)
+    return ChatAgent(session, user_id, language)

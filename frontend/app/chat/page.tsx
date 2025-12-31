@@ -1,162 +1,144 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
+import { MessageSquare, Send, Loader2, Plus, History, Bot, Sparkles, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, FormEvent, useCallback } from "react";
-import { Send, ArrowLeft, Bot, User, Loader2, MessageSquare, Plus, Menu, X, Trash2 } from "lucide-react";
-import { useApp } from "@/context/AppContext";
+import ThemeToggle from "@/components/ThemeToggle";
+import LanguageDropdown from "@/components/LanguageDropdown";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { signOut } from "@/lib/auth-client";
+import { LogOut } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useApp } from "@/context/AppContext";
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+  created_at: string;
 }
 
 interface Conversation {
   id: string;
-  title: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
+  preview?: string;
 }
 
 export default function ChatPage() {
   const router = useRouter();
-  const { backgroundMode } = useApp();
   const t = useTranslation();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [inputValue, setInputValue] = useState("");
+  const { language } = useApp();
   const [messages, setMessages] = useState<Message[]>([]);
+  const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [loadingMessage, setLoadingMessage] = useState("Thinking...");
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  // Conversation state
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
-  const [showSidebar, setShowSidebar] = useState(false);
-
-  // Load conversations on mount
-  const loadConversations = useCallback(async () => {
-    try {
-      const res = await fetch("/api/conversations");
-      if (res.ok) {
-        const data = await res.json();
-        setConversations(data);
-      }
-    } catch (err) {
-      console.error("Failed to load conversations:", err);
-    }
-  }, []);
-
-  // Load messages for a conversation
-  const loadMessages = useCallback(async (conversationId: string) => {
-    try {
-      const res = await fetch(`/api/conversations/${conversationId}/messages`);
-      if (res.ok) {
-        const data = await res.json();
-        setMessages(data);
-      }
-    } catch (err) {
-      console.error("Failed to load messages:", err);
-    }
-  }, []);
-
-  // Update body class based on background mode
-  useEffect(() => {
-    document.body.classList.remove("with-background", "with-background-image");
-    if (backgroundMode === "gradient") {
-      document.body.classList.add("with-background");
-    } else if (backgroundMode === "image") {
-      document.body.classList.add("with-background-image");
-    }
-  }, [backgroundMode]);
-
-  // Load conversations on mount
-  useEffect(() => {
-    loadConversations();
-  }, [loadConversations]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Start a new chat conversation
-  const handleNewChat = async () => {
+  // Load conversations on mount
+  useEffect(() => {
+    loadConversations();
+  }, []);
+
+  const loadConversations = async () => {
     try {
-      const res = await fetch("/api/conversations", { method: "POST" });
-      if (res.ok) {
-        const newConv = await res.json();
-        setConversations(prev => [newConv, ...prev]);
-        setCurrentConversationId(newConv.id);
-        setMessages([]);
-        setInputValue("");
-        setError(null);
-        setShowSidebar(false);
+      console.log("Loading conversations...");
+      const response = await fetch("/api/conversations");
+      console.log("Response status:", response.status);
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Conversations data:", data);
+        console.log("Conversations array:", data.conversations);
+        setConversations(data.conversations || []);
+      } else {
+        console.error("Failed to load conversations:", response.status);
       }
-    } catch (err) {
-      // Fallback to local-only new chat
-      setCurrentConversationId(null);
-      setMessages([]);
-      setInputValue("");
-      setError(null);
+    } catch (error) {
+      console.error("Error loading conversations:", error);
     }
   };
 
-  // Switch to a conversation
-  const handleSelectConversation = async (convId: string) => {
-    setCurrentConversationId(convId);
-    await loadMessages(convId);
-    setError(null);
-    setShowSidebar(false);
+  const loadConversation = async (convId: string) => {
+    try {
+      console.log("Loading conversation:", convId);
+      const response = await fetch(`/api/conversations/${convId}/messages`);
+      console.log("Load conversation response:", response.status);
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Conversation messages:", data);
+        setMessages(data.messages || []);
+        setConversationId(convId);
+        setShowHistory(false);
+      } else {
+        console.error("Failed to load conversation:", response.status);
+      }
+    } catch (error) {
+      console.error("Error loading conversation:", error);
+    }
   };
 
-  // Delete a conversation
-  const handleDeleteConversation = async (convId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const deleteConversation = async (convId: string) => {
     try {
-      const res = await fetch(`/api/conversations/${convId}`, { method: "DELETE" });
-      if (res.ok || res.status === 204) {
-        setConversations(prev => prev.filter(c => c.id !== convId));
-        if (currentConversationId === convId) {
-          setCurrentConversationId(null);
+      console.log("Deleting conversation:", convId);
+      const response = await fetch(`/api/conversations/${convId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok || response.status === 204) {
+        console.log("Conversation deleted successfully");
+        // If deleted conversation was active, clear messages
+        if (conversationId === convId) {
           setMessages([]);
+          setConversationId(null);
         }
+        // Refresh conversations list
+        await loadConversations();
+      } else {
+        console.error("Failed to delete conversation:", response.status);
       }
-    } catch (err) {
-      console.error("Failed to delete conversation:", err);
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
     }
   };
 
-  const onSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!inputValue.trim() || isLoading) return;
+  const startNewChat = async () => {
+    console.log('New Chat button clicked!');
+    try {
+      setMessages([]);
+      setConversationId(null);
+      setShowHistory(false);
+      setInputMessage('');
+      // Refresh conversations list
+      await loadConversations();
+    } catch (error) {
+      console.error('Error starting new chat:', error);
+    }
+  };
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: inputValue,
-    };
+  const sendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return;
 
-    setMessages((prev) => [...prev, userMessage]);
-    setInputValue("");
+    const userMessage = inputMessage.trim();
+    setInputMessage("");
     setIsLoading(true);
-    setError(null);
-    setLoadingMessage("Thinking...");
 
-    // Create abort controller for timeout
-    abortControllerRef.current = new AbortController();
-    const timeoutId = setTimeout(() => {
-      setLoadingMessage("Taking longer than usual...");
-    }, 5000);
-
-    const hardTimeoutId = setTimeout(() => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        setError("Request timed out. Please try again.");
-        setIsLoading(false);
-      }
-    }, 30000);
+    // Add user message to UI immediately (optimistic update)
+    const tempUserMsg: Message = {
+      id: `temp-${Date.now()}`,
+      role: "user",
+      content: userMessage,
+      created_at: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, tempUserMsg]);
 
     try {
       const response = await fetch("/api/chat", {
@@ -165,225 +147,491 @@ export default function ChatPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          messages: [...messages, userMessage].map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
+          message: userMessage,
+          conversation_id: conversationId,
+          language: language,
         }),
-        signal: abortControllerRef.current.signal,
       });
 
-      clearTimeout(timeoutId);
-      clearTimeout(hardTimeoutId);
-
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("API Error:", response.status, errorText);
-        throw new Error(`API Error: ${response.status} - ${errorText || "Failed to get response"}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      // Get response text
-      const assistantContent = await response.text();
+      const data = await response.json();
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
+      // Update conversation ID if it's a new conversation
+      if (data.conversation_id && !conversationId) {
+        console.log("New conversation created:", data.conversation_id);
+        setConversationId(data.conversation_id);
+        await loadConversations(); // Refresh conversation list
+      }
+
+      // Add assistant message to UI
+      const assistantMsg: Message = {
+        id: data.message_id,
         role: "assistant",
-        content: assistantContent,
+        content: data.response,
+        created_at: new Date().toISOString(),
       };
-
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (err: any) {
-      clearTimeout(timeoutId);
-      clearTimeout(hardTimeoutId);
-      if (err.name === "AbortError") {
-        setError("Request was cancelled or timed out.");
-      } else {
-        setError(err.message || "Something went wrong");
-      }
+      setMessages((prev) => [...prev, assistantMsg]);
+    } catch (error) {
+      console.error("Error sending message:", error);
+      // Add error message
+      const errorMsg: Message = {
+        id: `error-${Date.now()}`,
+        role: "assistant",
+        content: t.sorryError,
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
-      abortControllerRef.current = null;
     }
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push("/");
+  };
+
   return (
-    <div className="min-h-screen flex flex-col transition-colors duration-300">
-      <div className="max-w-4xl mx-auto w-full p-4 sm:p-6 flex flex-col h-screen">
-        {/* Header */}
-        <header className="flex items-center justify-between py-4 px-6 glass-strong rounded-2xl mb-4 fade-in">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="p-2 rounded-xl glass hover:glass-strong transition-all transform hover:scale-105"
-              aria-label="Back to Dashboard"
-            >
-              <ArrowLeft
-                size={20}
-                className="text-purple-600 dark:text-purple-400"
-              />
-            </button>
+    <div className="h-screen relative overflow-hidden" dir={language === 'ur' ? 'rtl' : 'ltr'}>
+      {/* Animated background particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
+        <div className="absolute top-20 left-10 w-20 h-20 bg-purple-500/20 rounded-full blur-xl animate-pulse"></div>
+        <div className="absolute top-40 right-20 w-32 h-32 bg-pink-500/20 rounded-full blur-xl animate-pulse delay-75"></div>
+        <div className="absolute bottom-40 left-1/4 w-24 h-24 bg-blue-500/20 rounded-full blur-xl animate-pulse delay-150"></div>
+        <div className="absolute bottom-20 right-1/3 w-28 h-28 bg-cyan-500/20 rounded-full blur-xl animate-pulse"></div>
+      </div>
+
+      {/* Header */}
+      <div className="relative z-20 glass-strong border-b border-purple-200/30 dark:border-purple-700/30">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/30">
+              <Bot className="text-white" size={24} />
+            </div>
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 dark:from-purple-400 dark:via-pink-400 dark:to-blue-400 bg-clip-text text-transparent">
-                AI Assistant
+              <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                {t.aiTaskAssistant}
               </h1>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                Manage tasks with natural language
+              <p className="text-sm text-purple-600 dark:text-purple-300">
+                {t.manageTasksNaturally}
               </p>
             </div>
           </div>
+
           <div className="flex items-center gap-3">
             <button
-              onClick={handleNewChat}
-              className="flex items-center gap-2 px-4 py-2 glass hover:glass-strong rounded-xl transition-all transform hover:scale-105 group"
-              aria-label="New Chat"
-              disabled={isLoading}
+              onClick={() => router.push("/dashboard")}
+              className="px-4 py-2 rounded-xl glass hover:glass-strong transition-all text-purple-700 dark:text-purple-300 font-medium"
             >
-              <Plus
-                size={20}
-                className="text-purple-600 dark:text-purple-400 group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors"
-              />
-              <span className="hidden sm:inline font-semibold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
-                New Chat
-              </span>
+              {t.dashboard}
             </button>
-            <Bot
-              size={24}
-              className="text-purple-600 dark:text-purple-400 animate-pulse"
-            />
+            <div className="glass-strong rounded-xl p-2">
+              <ThemeToggle />
+            </div>
+            <LanguageDropdown />
+            <button
+              onClick={handleSignOut}
+              className="glass-strong p-2 rounded-xl hover:bg-red-500/20 transition-all"
+              title="Sign Out"
+            >
+              <LogOut size={20} className="text-red-500" />
+            </button>
           </div>
-        </header>
-
-        {/* Chat Messages */}
-        <div className="flex-1 overflow-y-auto space-y-4 px-2 py-4">
-          {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center space-y-4 fade-in">
-              <div className="p-6 rounded-full glass-strong">
-                <MessageSquare
-                  size={48}
-                  className="text-purple-600 dark:text-purple-400"
-                />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold text-zinc-800 dark:text-zinc-200">
-                  Start a conversation
-                </h2>
-                <p className="text-zinc-600 dark:text-zinc-400 mt-2 max-w-md">
-                  Try saying things like:
-                </p>
-                <div className="flex flex-wrap gap-2 mt-4 justify-center">
-                  {[
-                    "Add a task to buy groceries",
-                    "Show me my tasks",
-                    "Mark task 1 as complete",
-                    "Delete task 2",
-                  ].map((suggestion) => (
-                    <button
-                      key={suggestion}
-                      onClick={() => setInputValue(suggestion)}
-                      className="px-4 py-2 text-sm glass hover:glass-strong rounded-full transition-all transform hover:scale-105 text-purple-700 dark:text-purple-300"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ) : (
-            messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex items-start gap-3 ${
-                  message.role === "user" ? "flex-row-reverse" : ""
-                } fade-in`}
-              >
-                <div
-                  className={`p-2 rounded-full ${
-                    message.role === "user"
-                      ? "bg-gradient-to-br from-purple-500 to-pink-500"
-                      : "glass-strong"
-                  }`}
-                >
-                  {message.role === "user" ? (
-                    <User size={20} className="text-white" />
-                  ) : (
-                    <Bot
-                      size={20}
-                      className="text-purple-600 dark:text-purple-400"
-                    />
-                  )}
-                </div>
-                <div
-                  className={`max-w-[80%] p-4 rounded-2xl ${
-                    message.role === "user"
-                      ? "bg-gradient-to-br from-purple-500 to-pink-500 text-white"
-                      : "glass-strong text-zinc-800 dark:text-zinc-200"
-                  }`}
-                >
-                  <p className="whitespace-pre-wrap">{message.content}</p>
-                </div>
-              </div>
-            ))
-          )}
-
-          {/* Loading indicator */}
-          {isLoading && messages[messages.length - 1]?.role === "user" && (
-            <div className="flex items-start gap-3 fade-in">
-              <div className="p-2 rounded-full glass-strong">
-                <Bot
-                  size={20}
-                  className="text-purple-600 dark:text-purple-400"
-                />
-              </div>
-              <div className="glass-strong p-4 rounded-2xl">
-                <div className="flex items-center gap-2">
-                  <Loader2
-                    size={16}
-                    className="animate-spin text-purple-600 dark:text-purple-400"
-                  />
-                  <span className={`${loadingMessage.includes("longer") ? "text-amber-600 dark:text-amber-400" : "text-zinc-600 dark:text-zinc-400"}`}>
-                    {loadingMessage}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Error display */}
-          {error && (
-            <div className="p-4 bg-red-100 dark:bg-red-900/50 border border-red-400 text-red-700 dark:text-red-300 rounded-xl fade-in">
-              {error}
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
         </div>
-
-        {/* Input Form */}
-        <form
-          onSubmit={onSubmit}
-          className="flex gap-3 p-4 glass-strong rounded-2xl mt-4"
-        >
-          <input
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Type a message... (e.g., 'Add a task to call mom')"
-            className="flex-1 px-4 py-3 rounded-xl glass focus:outline-none focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 text-zinc-800 dark:text-zinc-200 placeholder-zinc-500 dark:placeholder-zinc-400"
-            disabled={isLoading}
-          />
-          <button
-            type="submit"
-            disabled={isLoading || !inputValue.trim()}
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-2"
-          >
-            {isLoading ? (
-              <Loader2 size={20} className="animate-spin" />
-            ) : (
-              <Send size={20} />
-            )}
-            <span className="hidden sm:inline">Send</span>
-          </button>
-        </form>
       </div>
+
+      <div className="max-w-7xl mx-auto px-4 py-4 relative z-10 overflow-auto" style={{ maxHeight: 'calc(100vh - 88px)' }}>
+        <div className="grid grid-cols-12 gap-4 relative z-10">
+          {/* Sidebar - Chat History */}
+          <div className={`col-span-12 md:col-span-3 glass-strong rounded-3xl p-4 border-2 border-purple-200/40 dark:border-purple-700/40 overflow-y-auto transition-all relative z-10 ${showHistory ? '' : 'hidden md:block'}`} style={{ touchAction: 'auto', maxHeight: 'calc(100vh - 120px)', minHeight: '400px' }}>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent flex items-center gap-2">
+                <History size={18} />
+                {t.chatHistory}
+              </h2>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowHistory(false);
+                }}
+                className="md:hidden glass p-2 rounded-lg cursor-pointer relative z-20"
+                type="button"
+              >
+                ✕
+              </button>
+            </div>
+
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                startNewChat();
+              }}
+              className="w-full mb-4 px-4 py-3 bg-gradient-to-br from-green-500 via-emerald-500 to-teal-500 hover:from-green-600 hover:via-emerald-600 hover:to-teal-600 text-white font-bold rounded-xl shadow-xl shadow-green-500/40 hover:shadow-2xl hover:shadow-green-600/60 transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2 relative z-20 cursor-pointer border-2 border-white/20"
+              type="button"
+            >
+              <Plus size={20} className="font-bold" strokeWidth={3} />
+              <span className="text-base">{t.newChat}</span>
+            </button>
+
+            <div className="space-y-1.5">
+              {conversations.length === 0 ? (
+                <div className="text-center py-6 text-purple-500 dark:text-purple-400 text-xs">
+                  {language === 'ur' ? 'ابھی تک کوئی گفتگو نہیں' : 'No conversations yet'}
+                  <br />
+                  <span className="text-[10px]">{language === 'ur' ? 'نئی چیٹ شروع کریں' : 'Start a new chat'}</span>
+                </div>
+              ) : (
+                conversations.map((conv) => (
+                  <div
+                    key={conv.id}
+                    className={`w-full rounded-lg transition-all relative z-10 group ${
+                      conversationId === conv.id
+                        ? "bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-2 border-purple-400/50"
+                        : "glass hover:glass-strong"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2 px-3 py-2">
+                      <MessageSquare size={14} className="mt-0.5 text-purple-500 flex-shrink-0" />
+                      <div
+                        className="flex-1 min-w-0 cursor-pointer"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          loadConversation(conv.id);
+                        }}
+                      >
+                        <p className="text-xs font-medium text-purple-900 dark:text-purple-100 truncate">
+                          {t.chat} {new Date(conv.created_at).toLocaleDateString()}
+                        </p>
+                        <p className="text-[10px] text-purple-600 dark:text-purple-400">
+                          {new Date(conv.updated_at).toLocaleTimeString()}
+                        </p>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setConversationToDelete(conv.id);
+                          setDeleteDialogOpen(true);
+                        }}
+                        type="button"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/20 rounded flex-shrink-0"
+                        title={language === 'ur' ? 'حذف کریں' : 'Delete'}
+                      >
+                        <Trash2 size={12} className="text-red-500" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Main Chat Area */}
+          <div className="col-span-12 md:col-span-9 flex flex-col relative z-10" style={{ minHeight: '400px' }}>
+            {/* Robot Visual */}
+            <div className="glass-strong rounded-3xl border-2 border-purple-200/40 dark:border-purple-700/40 flex flex-col overflow-hidden relative z-10">
+              {/* Chat Messages */}
+              <div className="overflow-y-auto p-4 space-y-4" style={{ maxHeight: 'calc(100vh - 280px)', minHeight: '300px' }}>
+                {messages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center text-center space-y-3 py-3">
+                    {/* Simple Friendly Robot Character */}
+                    <div className="relative scale-75" style={{ animation: 'float 3s ease-in-out infinite' }}>
+                      {/* Antenna with light */}
+                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex flex-col items-center">
+                        <div className="w-1 h-6 bg-purple-400 rounded-full"></div>
+                        <div className="w-4 h-4 bg-pink-400 rounded-full animate-pulse shadow-lg shadow-pink-400"></div>
+                      </div>
+
+                      {/* Robot Head */}
+                      <div className="w-24 h-24 mx-auto bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl shadow-2xl relative mb-2 border-4 border-white/20">
+                        {/* Face Screen */}
+                        <div className="absolute inset-3 bg-cyan-400/30 backdrop-blur-sm rounded-xl border-2 border-cyan-300/50">
+                          {/* Big Friendly Eyes */}
+                          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-3">
+                            <div className="relative">
+                              <div className="w-6 h-6 bg-white rounded-full"></div>
+                              <div className="absolute top-1 left-1 w-4 h-4 bg-purple-600 rounded-full" style={{ animation: 'blink 4s ease-in-out infinite' }}></div>
+                            </div>
+                            <div className="relative">
+                              <div className="w-6 h-6 bg-white rounded-full"></div>
+                              <div className="absolute top-1 left-1 w-4 h-4 bg-purple-600 rounded-full" style={{ animation: 'blink 4s ease-in-out infinite' }}></div>
+                            </div>
+                          </div>
+
+                          {/* Happy Smile */}
+                          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-10 h-5 border-b-4 border-pink-400 rounded-full"></div>
+                        </div>
+
+                        {/* Ear Lights */}
+                        <div className="absolute top-8 -left-2 w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400"></div>
+                        <div className="absolute top-8 -right-2 w-3 h-3 bg-blue-400 rounded-full animate-pulse shadow-lg shadow-blue-400" style={{ animationDelay: '0.5s' }}></div>
+                      </div>
+
+                      {/* Robot Body */}
+                      <div className="relative">
+                        {/* Waving Left Arm */}
+                        <div className="absolute -left-10 top-2" style={{ animation: 'wave 2s ease-in-out infinite', transformOrigin: 'top center' }}>
+                          <div className="w-4 h-14 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full shadow-lg"></div>
+                          <div className="w-5 h-5 bg-pink-500 rounded-full mt-1 shadow-lg"></div>
+                        </div>
+
+                        {/* Static Right Arm */}
+                        <div className="absolute -right-10 top-2">
+                          <div className="w-4 h-14 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full shadow-lg"></div>
+                          <div className="w-5 h-5 bg-pink-500 rounded-full mt-1 shadow-lg"></div>
+                        </div>
+
+                        {/* Torso */}
+                        <div className="w-28 h-32 mx-auto bg-gradient-to-br from-purple-500 via-pink-500 to-purple-600 rounded-2xl shadow-2xl relative border-4 border-white/20">
+                          {/* Chest Panel */}
+                          <div className="absolute inset-4 bg-white/10 backdrop-blur-sm rounded-xl border-2 border-white/20">
+                            {/* Glowing Heart/Core */}
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full shadow-2xl shadow-cyan-400/80" style={{ animation: 'heartbeat 2s ease-in-out infinite' }}>
+                              <Bot className="w-5 h-5 text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                            </div>
+                          </div>
+
+                          {/* Status Lights */}
+                          <div className="absolute top-2 left-1/2 -translate-x-1/2 flex gap-2">
+                            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400"></div>
+                            <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse shadow-lg shadow-yellow-400" style={{ animationDelay: '0.3s' }}></div>
+                            <div className="w-2 h-2 bg-pink-400 rounded-full animate-pulse shadow-lg shadow-pink-400" style={{ animationDelay: '0.6s' }}></div>
+                          </div>
+                        </div>
+
+                        {/* Legs */}
+                        <div className="flex gap-4 justify-center mt-2">
+                          <div className="w-5 h-16 bg-gradient-to-b from-purple-600 to-pink-600 rounded-full shadow-lg"></div>
+                          <div className="w-5 h-16 bg-gradient-to-b from-purple-600 to-pink-600 rounded-full shadow-lg"></div>
+                        </div>
+
+                        {/* Feet */}
+                        <div className="flex gap-4 justify-center">
+                          <div className="w-7 h-4 bg-pink-600 rounded-full shadow-xl"></div>
+                          <div className="w-7 h-4 bg-pink-600 rounded-full shadow-xl"></div>
+                        </div>
+                      </div>
+
+                      {/* Floating Sparkles */}
+                      <Sparkles className="absolute -top-4 -right-8 w-6 h-6 text-pink-400 animate-bounce" />
+                      <Sparkles className="absolute top-16 -left-8 w-5 h-5 text-purple-400 animate-bounce" style={{ animationDelay: '0.5s' }} />
+                      <Sparkles className="absolute -bottom-4 right-0 w-4 h-4 text-cyan-400 animate-bounce" style={{ animationDelay: '1s' }} />
+                    </div>
+
+                    <div className="max-w-2xl">
+                      <h3 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent mb-1">
+                        {t.hiImYourAI}
+                      </h3>
+                      <p className="text-xs text-purple-700 dark:text-purple-300 mb-2">
+                        {t.canHelpManage}
+                      </p>
+                      <div className="grid grid-cols-2 gap-1.5 text-xs text-purple-700 dark:text-purple-300">
+                        <div className="glass px-2 py-1.5 rounded-lg hover:glass-strong transition-all">
+                          <span className="text-base mr-1">➕</span>
+                          <span className="font-medium text-[11px]">{t.addTaskExample}</span>
+                        </div>
+                        <div className="glass px-2 py-1.5 rounded-lg hover:glass-strong transition-all">
+                          <span className="text-base mr-1">📋</span>
+                          <span className="font-medium text-[11px]">{t.showAllTasksExample}</span>
+                        </div>
+                        <div className="glass px-2 py-1.5 rounded-lg hover:glass-strong transition-all">
+                          <span className="text-base mr-1">✅</span>
+                          <span className="font-medium text-[11px]">{t.markCompleteExample}</span>
+                        </div>
+                        <div className="glass px-2 py-1.5 rounded-lg hover:glass-strong transition-all">
+                          <span className="text-base mr-1">🔍</span>
+                          <span className="font-medium text-[11px]">{t.showCompletedExample}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowHistory(!showHistory);
+                      }}
+                      className="md:hidden glass px-6 py-3 rounded-xl flex items-center gap-2 hover:glass-strong transition-all cursor-pointer relative z-20"
+                      type="button"
+                    >
+                      <History size={18} />
+                      {t.viewHistory}
+                    </button>
+
+                    {/* Arrow pointing down to input */}
+                    <div className="mt-4 flex flex-col items-center animate-bounce">
+                      <p className="text-purple-600 dark:text-purple-400 font-bold text-sm mb-1">
+                        {language === 'ur' ? '👇 نیچے ٹائپ کریں' : '👇 Type Below'}
+                      </p>
+                      <svg className="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                      </svg>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`flex ${
+                          message.role === "user" ? "justify-end" : "justify-start"
+                        }`}
+                      >
+                        <div
+                          className={`max-w-[80%] rounded-2xl px-5 py-3 shadow-lg ${
+                            message.role === "user"
+                              ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+                              : "glass-strong border-2 border-purple-200/40 dark:border-purple-700/40 text-purple-900 dark:text-purple-100"
+                          }`}
+                        >
+                          {message.role === "assistant" && (
+                            <div className="flex items-center gap-2 mb-2">
+                              <Bot size={16} className="text-purple-500" />
+                              <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">{t.aiAssistant}</span>
+                            </div>
+                          )}
+                          <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {isLoading && (
+                      <div className="flex justify-start">
+                        <div className="glass-strong border-2 border-purple-200/40 dark:border-purple-700/40 rounded-2xl px-5 py-3">
+                          <Loader2 className="w-5 h-5 animate-spin text-purple-600 dark:text-purple-300" />
+                        </div>
+                      </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                  </>
+                )}
+              </div>
+
+              {/* Input Area */}
+              <div className="border-t-4 border-purple-400/50 dark:border-purple-600/50 p-3 bg-gradient-to-b from-purple-50/80 to-white/80 dark:from-purple-900/30 dark:to-purple-950/30 backdrop-blur-md relative z-20 shadow-lg">
+                {/* Example Prompts */}
+                <div className="mb-2 flex flex-wrap gap-1.5 justify-center relative z-20">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setInputMessage(language === 'ur' ? 'گروسری خریدنے کا کام شامل کریں' : 'Add a task to buy groceries');
+                    }}
+                    className="text-xs px-3 py-1.5 glass hover:glass-strong rounded-lg text-purple-700 dark:text-purple-300 transition-all hover:scale-105 cursor-pointer"
+                    disabled={isLoading}
+                    type="button"
+                  >
+                    ➕ {language === 'ur' ? 'کام شامل کریں' : 'Add task'}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setInputMessage(language === 'ur' ? 'میرے تمام کام دکھائیں' : 'Show me all my tasks');
+                    }}
+                    className="text-xs px-3 py-1.5 glass hover:glass-strong rounded-lg text-purple-700 dark:text-purple-300 transition-all hover:scale-105 cursor-pointer"
+                    disabled={isLoading}
+                    type="button"
+                  >
+                    📋 {language === 'ur' ? 'تمام کام' : 'All tasks'}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setInputMessage(language === 'ur' ? 'مکمل شدہ کام دکھائیں' : 'Show completed tasks');
+                    }}
+                    className="text-xs px-3 py-1.5 glass hover:glass-strong rounded-lg text-purple-700 dark:text-purple-300 transition-all hover:scale-105 cursor-pointer"
+                    disabled={isLoading}
+                    type="button"
+                  >
+                    ✅ {language === 'ur' ? 'مکمل شدہ' : 'Completed'}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setInputMessage(language === 'ur' ? 'نامکمل کام دکھائیں' : 'Show incomplete tasks');
+                    }}
+                    className="text-xs px-3 py-1.5 glass hover:glass-strong rounded-lg text-purple-700 dark:text-purple-300 transition-all hover:scale-105 cursor-pointer"
+                    disabled={isLoading}
+                    type="button"
+                  >
+                    ⏳ {language === 'ur' ? 'نامکمل' : 'Incomplete'}
+                  </button>
+                </div>
+
+                {/* Input Field Label */}
+                <div className="mb-1.5 flex items-center gap-2">
+                  <MessageSquare size={16} className="text-purple-600 dark:text-purple-400" />
+                  <label className="text-xs font-bold text-purple-700 dark:text-purple-300">
+                    {language === 'ur' ? 'یہاں اپنا پیغام ٹائپ کریں:' : 'Type your message here:'}
+                  </label>
+                </div>
+
+                {/* Input Field */}
+                <div className="flex gap-2 relative z-20">
+                  <input
+                    type="text"
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder={t.typeYourMessage}
+                    className="flex-1 px-4 py-3 bg-white dark:bg-purple-950/50 border-3 border-purple-400/60 dark:border-purple-500/60 rounded-xl focus:outline-none focus:ring-4 focus:ring-purple-500/50 focus:border-purple-500 text-purple-900 dark:text-purple-100 placeholder-purple-500/70 dark:placeholder-purple-400/70 text-sm font-medium shadow-lg shadow-purple-200/50 dark:shadow-purple-900/50"
+                    disabled={isLoading}
+                    autoFocus
+                  />
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      sendMessage();
+                    }}
+                    disabled={!inputMessage.trim() || isLoading}
+                    className="bg-gradient-to-br from-purple-600 via-pink-600 to-purple-700 text-white px-6 py-3 rounded-xl hover:from-purple-700 hover:via-pink-700 hover:to-purple-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2 shadow-xl shadow-purple-500/40 hover:shadow-2xl hover:shadow-purple-600/60 transform hover:scale-105 disabled:hover:scale-100 cursor-pointer font-bold"
+                    type="button"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        <span className="text-sm">{t.send}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={() => {
+          if (conversationToDelete) {
+            deleteConversation(conversationToDelete);
+            setConversationToDelete(null);
+          }
+        }}
+        title={language === 'ur' ? 'گفتگو حذف کریں؟' : 'Delete Conversation?'}
+        message={language === 'ur'
+          ? 'کیا آپ واقعی اس گفتگو کو حذف کرنا چاہتے ہیں؟ یہ عمل واپس نہیں ہو سکتا۔'
+          : 'Are you sure you want to delete this conversation? This action cannot be undone.'}
+        confirmText={language === 'ur' ? 'حذف کریں' : 'Delete'}
+        cancelText={language === 'ur' ? 'منسوخ کریں' : 'Cancel'}
+        isDangerous={true}
+      />
     </div>
   );
 }

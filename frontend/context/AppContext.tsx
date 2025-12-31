@@ -11,6 +11,7 @@ interface AppContextType {
   toggleTheme: () => void;
   language: Language;
   toggleLanguage: () => void;
+  setLanguage: (lang: Language) => void;
   backgroundEnabled: boolean;
   toggleBackground: () => void;
   backgroundMode: BackgroundMode;
@@ -70,6 +71,11 @@ export function AppWrapper({ children }: { children: ReactNode }) {
     localStorage.setItem('language', newLanguage);
   };
 
+  const changeLanguage = (lang: Language) => {
+    setLanguage(lang);
+    localStorage.setItem('language', lang);
+  };
+
   const toggleBackground = () => {
     const newBackgroundEnabled = !backgroundEnabled;
     setBackgroundEnabled(newBackgroundEnabled);
@@ -87,6 +93,7 @@ export function AppWrapper({ children }: { children: ReactNode }) {
       toggleTheme,
       language,
       toggleLanguage,
+      setLanguage: changeLanguage,
       backgroundEnabled,
       toggleBackground,
       backgroundMode,
