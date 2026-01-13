@@ -1,0 +1,16 @@
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: pubsub
+spec:
+  type: pubsub.kafka
+  version: v1
+  metadata:
+  - name: brokers
+    value: "kafka1:29092,kafka2:29093,kafka3:29094"
+  - name: consumerGroup
+    value: "todo-app"
+  - name: authRequired
+    value: "false"
+  - name: initialOffset
+    value: "newest"
