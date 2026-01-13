@@ -1,7 +1,7 @@
 """Task API endpoints."""
 
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel import Session
 
 from ...models.task import Task, TaskCreate, TaskUpdate, TaskRead
@@ -47,13 +47,27 @@ async def create_task(
     summary="Get all tasks for current user",
 )
 async def get_tasks(
+    category_id: Optional[int] = Query(None, description="Filter by category ID"),
+    priority: Optional[str] = Query(None, description="Filter by priority (critical, high, medium, low)"),
+    is_completed: Optional[bool] = Query(None, description="Filter by completion status"),
+    due_date_filter: Optional[str] = Query(None, description="Filter by due date (today, this_week, overdue, has_due_date, no_due_date)"),
+    sort_by: Optional[str] = Query(None, description="Sort tasks (priority_desc, priority_asc, due_date_asc, due_date_desc, created_at_desc)"),
+    search: Optional[str] = Query(None, description="Search tasks by keyword in title, description, and notes"),
+    tag_ids: Optional[List[int]] = Query(None, description="Filter by tag IDs (tasks must have at least one of these tags)"),
     current_user_id: str = Depends(get_current_user),
     session: Session = Depends(get_db),
 ) -> List[Task]:
     """
-    Get all tasks for the authenticated user, ordered by created_at DESC.
+    Get all tasks for the authenticated user with optional filtering and sorting.
 
     Args:
+        category_id: Optional filter by category ID
+        priority: Optional filter by priority (critical, high, medium, low)
+        is_completed: Optional filter by completion status
+        due_date_filter: Optional date filter (today, this_week, overdue, has_due_date, no_due_date)
+        sort_by: Optional sorting (priority_desc, priority_asc, due_date_asc, due_date_desc, created_at_desc)
+        search: Optional keyword search in title, description, and notes
+        tag_ids: Optional filter by tag IDs (tasks must have at least one of these tags)
         current_user_id: UUID from JWT token (automatic)
         session: Database session (automatic)
 
@@ -64,7 +78,17 @@ async def get_tasks(
         - Requires valid JWT token (401 if missing/invalid)
         - GOLDEN RULE: Only returns tasks where user_id matches JWT
     """
-    tasks = TaskService.get_tasks_by_user(session, current_user_id)
+    tasks = TaskService.get_tasks_by_user(
+        session=session,
+        user_id=current_user_id,
+        category_id=category_id,
+        priority=priority,
+        is_completed=is_completed,
+        due_date_filter=due_date_filter,
+        sort_by=sort_by,
+        search_query=search,
+        tag_ids=tag_ids,
+    )
     return tasks
 
 

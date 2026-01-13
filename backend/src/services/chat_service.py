@@ -140,17 +140,21 @@ class ChatService:
         # Step 3: Fetch conversation history (for context)
         history = self.get_conversation_history(conversation.id, limit=10)
 
-        # Step 4: Initialize AI agent (stateless - fresh instance)
+        # Step 4: Initialize AI agent with conversation for state persistence
         print(f"Creating agent with language: {language}")
-        agent = create_chat_agent(self.session, user_id, language)
+        agent = create_chat_agent(self.session, user_id, language, conversation)
 
         # Step 5: Process message
         try:
             response_data = await agent.process_message(message)
             response_content = response_data.get("content", "I'm not sure how to help with that.")
+            # Commit any state changes made by the agent
+            self.session.commit()
         except Exception as e:
             response_content = f"Sorry, I encountered an error: {str(e)}"
             response_data = {"type": "error", "content": response_content}
+            import traceback
+            traceback.print_exc()
 
         # Step 6: Save assistant response
         assistant_message = self.save_message(

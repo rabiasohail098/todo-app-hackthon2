@@ -64,19 +64,19 @@
 
 #### Backend
 
-- [ ] T016 [P] [US1] Create Category model in backend/src/models/category.py (id, user_id, name, color, icon, created_at)
-- [ ] T017 [US1] Create CategoryService in backend/src/services/category_service.py (CRUD operations)
-- [ ] T018 [US1] Create categories API routes in backend/src/api/routes/categories.py (GET, POST, PUT, DELETE /api/categories)
-- [ ] T019 [US1] Update TaskService to support category_id filtering in backend/src/services/task_service.py
-- [ ] T020 [US1] Enhance ChatAgent to parse category from natural language in backend/src/agent/chat_agent.py
+- [X] T016 [P] [US1] Create Category model in backend/src/models/category.py (id, user_id, name, color, icon, created_at)
+- [X] T017 [US1] Create CategoryService in backend/src/services/category_service.py (CRUD operations)
+- [X] T018 [US1] Create categories API routes in backend/src/api/routes/categories.py (GET, POST, PUT, DELETE /api/categories)
+- [X] T019 [US1] Update TaskService to support category_id filtering in backend/src/services/task_service.py
+- [X] T020 [US1] Enhance ChatAgent to parse category from natural language in backend/src/agent/chat_agent.py
 
 #### Frontend
 
-- [ ] T021 [P] [US1] Create CategoryBadge component in frontend/components/CategoryBadge.tsx
-- [ ] T022 [P] [US1] Create categories API route in frontend/app/api/categories/route.ts
-- [ ] T023 [US1] Create category management page in frontend/app/dashboard/categories/page.tsx
-- [ ] T024 [US1] Add category filter to TaskFilters component (create if not exists) in frontend/components/TaskFilters.tsx
-- [ ] T025 [US1] Update task creation/editing to include category selection
+- [X] T021 [P] [US1] Create CategoryBadge component in frontend/components/CategoryBadge.tsx
+- [X] T022 [P] [US1] Create categories API route in frontend/app/api/categories/route.ts
+- [X] T023 [US1] Create category management page in frontend/app/dashboard/categories/page.tsx
+- [X] T024 [US1] Add category filter to TaskFilters component (create if not exists) in frontend/components/TaskFilters.tsx
+- [X] T025 [US1] Update task creation/editing to include category selection
 
 **Checkpoint**: Users can create categories, assign tasks to categories, and filter by category
 
@@ -92,16 +92,16 @@
 
 #### Backend
 
-- [ ] T026 [US2] Update TaskService to support priority filtering and sorting in backend/src/services/task_service.py
-- [ ] T027 [US2] Update tasks API routes to accept priority parameter in backend/src/api/routes/tasks.py
-- [ ] T028 [US2] Enhance ChatAgent to parse priority keywords in backend/src/agent/chat_agent.py
+- [X] T026 [US2] Update TaskService to support priority filtering and sorting in backend/src/services/task_service.py
+- [X] T027 [US2] Update tasks API routes to accept priority parameter in backend/src/api/routes/tasks.py
+- [X] T028 [US2] Enhance ChatAgent to parse priority keywords in backend/src/agent/chat_agent.py
 
 #### Frontend
 
-- [ ] T029 [P] [US2] Create PriorityIndicator component in frontend/components/PriorityIndicator.tsx (color-coded icons)
-- [ ] T030 [US2] Add priority filter to TaskFilters component in frontend/components/TaskFilters.tsx
-- [ ] T031 [US2] Update task creation/editing forms to include priority selector
-- [ ] T032 [US2] Add priority sorting option to dashboard
+- [X] T029 [P] [US2] Create PriorityIndicator component in frontend/components/PriorityIndicator.tsx (color-coded icons)
+- [X] T030 [US2] Add priority filter to TaskFilters component in frontend/components/TaskFilters.tsx
+- [X] T031 [US2] Update task creation/editing forms to include priority selector
+- [X] T032 [US2] Add priority sorting option to dashboard
 
 **Checkpoint**: Users can assign priorities, filter by priority, and sort tasks by urgency
 
@@ -117,16 +117,16 @@
 
 #### Backend
 
-- [ ] T033 [US3] Update TaskService to support due_date filtering (today, this week, overdue) in backend/src/services/task_service.py
-- [ ] T034 [US3] Update tasks API routes to accept due_date filters in backend/src/api/routes/tasks.py
-- [ ] T035 [US3] Enhance ChatAgent to parse natural language dates in backend/src/agent/chat_agent.py (use date_parser utility)
+- [X] T033 [US3] Update TaskService to support due_date filtering (today, this week, overdue) in backend/src/services/task_service.py
+- [X] T034 [US3] Update tasks API routes to accept due_date filters in backend/src/api/routes/tasks.py
+- [X] T035 [US3] Enhance ChatAgent to parse natural language dates in backend/src/agent/chat_agent.py (use date_parser utility)
 
 #### Frontend
 
-- [ ] T036 [P] [US3] Create DueDateDisplay component in frontend/components/DueDateDisplay.tsx (with overdue warning colors)
-- [ ] T037 [US3] Add due date filters to TaskFilters component in frontend/components/TaskFilters.tsx (Today, This Week, Overdue)
-- [ ] T038 [US3] Update task creation/editing forms to include date picker
-- [ ] T039 [US3] Add due date sorting option (soonest first, latest first)
+- [X] T036 [P] [US3] Create DueDateDisplay component in frontend/components/DueDateDisplay.tsx (with overdue warning colors)
+- [X] T037 [US3] Add due date filters to TaskFilters component in frontend/components/TaskFilters.tsx (Today, This Week, Overdue)
+- [X] T038 [US3] Update task creation/editing forms to include date picker
+- [X] T039 [US3] Add due date sorting option (soonest first, latest first)
 
 **Checkpoint**: Users can set due dates, view overdue tasks, and filter by date ranges
 
@@ -142,16 +142,16 @@
 
 #### Backend
 
-- [ ] T040 [US4] Create SearchService in backend/src/services/search_service.py (full-text search using PostgreSQL tsvector)
-- [ ] T041 [US4] Create search API route in backend/src/api/routes/search.py (GET /api/tasks/search with query parameters)
-- [ ] T042 [US4] Enhance ChatAgent to detect search intent in backend/src/agent/chat_agent.py
+- [X] T040 [US4] Create SearchService in backend/src/services/search_service.py (full-text search using PostgreSQL tsvector)
+- [X] T041 [US4] Create search API route in backend/src/api/routes/search.py (GET /api/tasks/search with query parameters)
+- [X] T042 [US4] Enhance ChatAgent to detect search intent in backend/src/agent/chat_agent.py
 
 #### Frontend
 
-- [ ] T043 [P] [US4] Create SearchBar component in frontend/components/SearchBar.tsx (real-time search with debounce)
-- [ ] T044 [US4] Create search API route in frontend/app/api/search/route.ts
-- [ ] T045 [US4] Add SearchBar to dashboard header
-- [ ] T046 [US4] Implement search results display with highlighted matches
+- [X] T043 [P] [US4] Create SearchBar component in frontend/components/SearchBar.tsx (real-time search with debounce)
+- [X] T044 [US4] Create search API route in frontend/app/api/search/route.ts
+- [X] T045 [US4] Add SearchBar to dashboard header
+- [X] T046 [US4] Implement search results display with highlighted matches
 
 **Checkpoint**: Users can search tasks, see real-time results, and fuzzy matching works
 
@@ -167,18 +167,18 @@
 
 #### Backend
 
-- [ ] T047 [P] [US5] Create Subtask model in backend/src/models/subtask.py (id, parent_task_id, title, is_completed, order, created_at)
-- [ ] T048 [US5] Create SubtaskService in backend/src/services/subtask_service.py (CRUD, completion tracking)
-- [ ] T049 [US5] Create subtasks API routes in backend/src/api/routes/subtasks.py (POST/PUT/DELETE /api/tasks/{id}/subtasks)
-- [ ] T050 [US5] Update TaskService to calculate subtask progress in backend/src/services/task_service.py
-- [ ] T051 [US5] Enhance ChatAgent to handle subtask commands in backend/src/agent/chat_agent.py
+- [X] T047 [P] [US5] Create Subtask model in backend/src/models/subtask.py (id, parent_task_id, title, is_completed, order, created_at)
+- [X] T048 [US5] Create SubtaskService in backend/src/services/subtask_service.py (CRUD, completion tracking)
+- [X] T049 [US5] Create subtasks API routes in backend/src/api/routes/subtasks.py (POST/PUT/DELETE /api/tasks/{id}/subtasks)
+- [X] T050 [US5] Update TaskService to calculate subtask progress in backend/src/services/task_service.py
+- [X] T051 [US5] Enhance ChatAgent to handle subtask commands in backend/src/agent/chat_agent.py
 
 #### Frontend
 
-- [ ] T052 [P] [US5] Create SubtaskList component in frontend/components/SubtaskList.tsx (list with checkboxes, progress bar)
-- [ ] T053 [P] [US5] Create subtasks API route in frontend/app/api/tasks/[id]/subtasks/route.ts
-- [ ] T054 [US5] Add subtasks section to task detail view
-- [ ] T055 [US5] Implement subtask creation UI in task detail
+- [X] T052 [P] [US5] Create SubtaskList component in frontend/components/SubtaskList.tsx (list with checkboxes, progress bar)
+- [X] T053 [P] [US5] Create subtasks API route in frontend/app/api/tasks/[id]/subtasks/route.ts
+- [X] T054 [US5] Add subtasks section to task detail view
+- [X] T055 [US5] Implement subtask creation UI in task detail
 
 **Checkpoint**: Users can add subtasks, mark them complete, and see progress tracking
 
@@ -194,16 +194,16 @@
 
 #### Backend
 
-- [ ] T056 [US6] Create StatisticsService in backend/src/services/statistics_service.py (calculate completion rate, tasks per day, most productive day)
-- [ ] T057 [US6] Create statistics API route in backend/src/api/routes/statistics.py (GET /api/statistics with date range filters)
+- [X] T056 [US6] Create StatisticsService in backend/src/services/statistics_service.py (calculate completion rate, tasks per day, most productive day)
+- [X] T057 [US6] Create statistics API route in backend/src/api/routes/statistics.py (GET /api/statistics with date range filters)
 
 #### Frontend
 
-- [ ] T058 [P] [US6] Create StatisticsChart component in frontend/components/StatisticsChart.tsx (using Recharts: bar chart, pie chart, line chart)
-- [ ] T059 [P] [US6] Create statistics API route in frontend/app/api/statistics/route.ts
-- [ ] T060 [US6] Create statistics dashboard page in frontend/app/dashboard/statistics/page.tsx
-- [ ] T061 [US6] Add statistics cards (total tasks, completion rate, overdue count, due today count)
-- [ ] T062 [US6] Implement date range filter for statistics
+- [X] T058 [P] [US6] Create StatisticsChart component in frontend/components/StatisticsChart.tsx (using Recharts: bar chart, pie chart, line chart)
+- [X] T059 [P] [US6] Create statistics API route in frontend/app/api/statistics/route.ts
+- [X] T060 [US6] Create statistics dashboard page in frontend/app/dashboard/statistics/page.tsx
+- [X] T061 [US6] Add statistics cards (total tasks, completion rate, overdue count, due today count)
+- [X] T062 [US6] Implement date range filter for statistics
 
 **Checkpoint**: Users can view productivity statistics with visual charts
 
@@ -219,20 +219,20 @@
 
 #### Backend
 
-- [ ] T063 [P] [US7] Create Tag model in backend/src/models/tag.py (id, user_id, name, created_at)
-- [ ] T064 [P] [US7] Create TaskTag join model in backend/src/models/task_tag.py (task_id, tag_id, many-to-many)
-- [ ] T065 [US7] Create TagService in backend/src/services/tag_service.py (CRUD, tag suggestions)
-- [ ] T066 [US7] Create tags API routes in backend/src/api/routes/tags.py (GET /api/tags, POST/DELETE /api/tasks/{id}/tags)
-- [ ] T067 [US7] Update TaskService to support tag filtering in backend/src/services/task_service.py
-- [ ] T068 [US7] Enhance ChatAgent to parse hashtags in backend/src/agent/chat_agent.py
+- [X] T063 [P] [US7] Create Tag model in backend/src/models/tag.py (id, user_id, name, created_at)
+- [X] T064 [P] [US7] Create TaskTag join model in backend/src/models/task_tag.py (task_id, tag_id, many-to-many)
+- [X] T065 [US7] Create TagService in backend/src/services/tag_service.py (CRUD, tag suggestions)
+- [X] T066 [US7] Create tags API routes in backend/src/api/routes/tags.py (GET /api/tags, POST/DELETE /api/tasks/{id}/tags)
+- [X] T067 [US7] Update TaskService to support tag filtering in backend/src/services/task_service.py
+- [X] T068 [US7] Enhance ChatAgent to parse hashtags in backend/src/agent/chat_agent.py
 
 #### Frontend
 
-- [ ] T069 [P] [US7] Create TagInput component in frontend/components/TagInput.tsx (auto-complete, chip display)
-- [ ] T070 [P] [US7] Create tags API routes in frontend/app/api/tags/route.ts and frontend/app/api/tasks/[id]/tags/route.ts
-- [ ] T071 [US7] Add tag filter to TaskFilters component in frontend/components/TaskFilters.tsx
-- [ ] T072 [US7] Update task creation/editing forms to include tag input
-- [ ] T073 [US7] Make tags clickable to filter by that tag
+- [X] T069 [P] [US7] Create TagInput component in frontend/components/TagInput.tsx (auto-complete, chip display)
+- [X] T070 [P] [US7] Create tags API routes in frontend/app/api/tags/route.ts and frontend/app/api/tasks/[id]/tags/route.ts
+- [X] T071 [US7] Add tag filter to TaskFilters component in frontend/components/TaskFilters.tsx
+- [X] T072 [US7] Update task creation/editing forms to include tag input
+- [X] T073 [US7] Make tags clickable to filter by that tag
 
 **Checkpoint**: Users can add multiple tags, filter by tags, and get tag suggestions
 
@@ -248,16 +248,16 @@
 
 #### Backend
 
-- [ ] T074 [US8] Update TaskService to handle recurrence_pattern and next_recurrence_date in backend/src/services/task_service.py
-- [ ] T075 [US8] Create recurring task generation job in backend/src/jobs/generate_recurring_tasks.py (APScheduler job runs hourly)
-- [ ] T076 [US8] Register APScheduler job in backend/src/main.py
-- [ ] T077 [US8] Enhance ChatAgent to parse recurrence patterns in backend/src/agent/chat_agent.py
+- [X] T074 [US8] Update TaskService to handle recurrence_pattern and next_recurrence_date in backend/src/services/task_service.py
+- [X] T075 [US8] Create recurring task generation job in backend/src/jobs/generate_recurring_tasks.py (APScheduler job runs hourly)
+- [X] T076 [US8] Register APScheduler job in backend/src/main.py
+- [X] T077 [US8] Enhance ChatAgent to parse recurrence patterns in backend/src/agent/chat_agent.py
 
 #### Frontend
 
-- [ ] T078 [P] [US8] Create RecurrenceSelector component in frontend/components/RecurrenceSelector.tsx (dropdown with Daily/Weekly/Monthly options)
-- [ ] T079 [US8] Update task creation form to include recurrence selector
-- [ ] T080 [US8] Display next occurrence date for recurring tasks
+- [X] T078 [P] [US8] Create RecurrenceSelector component in frontend/components/RecurrenceSelector.tsx (dropdown with Daily/Weekly/Monthly options)
+- [X] T079 [US8] Update task creation form to include recurrence selector
+- [X] T080 [US8] Display next occurrence date for recurring tasks
 
 **Checkpoint**: Users can create recurring tasks that auto-generate next occurrences
 
@@ -273,20 +273,20 @@
 
 #### Backend
 
-- [ ] T081 [P] [US9] Create Attachment model in backend/src/models/attachment.py (id, task_id, filename, file_path, file_size, mime_type, created_at)
-- [ ] T082 [US9] Create AttachmentService in backend/src/services/attachment_service.py (upload to Cloudinary, delete, download)
-- [ ] T083 [US9] Create attachments API routes in backend/src/api/routes/attachments.py (POST/GET/DELETE /api/tasks/{id}/attachments)
-- [ ] T084 [US9] Update Task model to include notes field (markdown text) in backend/src/models/task.py
-- [ ] T085 [US9] Enhance ChatAgent to handle "add note to task X" commands in backend/src/agent/chat_agent.py
+- [X] T081 [P] [US9] Create Attachment model in backend/src/models/attachment.py (id, task_id, filename, file_path, file_size, mime_type, created_at)
+- [X] T082 [US9] Create AttachmentService in backend/src/services/attachment_service.py (upload to Cloudinary, delete, download)
+- [X] T083 [US9] Create attachments API routes in backend/src/api/routes/attachments.py (POST/GET/DELETE /api/tasks/{id}/attachments)
+- [X] T084 [US9] Update Task model to include notes field (markdown text) in backend/src/models/task.py
+- [X] T085 [US9] Enhance ChatAgent to handle "add note to task X" commands in backend/src/agent/chat_agent.py
 
 #### Frontend
 
-- [ ] T086 [P] [US9] Add react-markdown support for rendering notes
-- [ ] T087 [P] [US9] Create attachments API routes in frontend/app/api/tasks/[id]/attachments/route.ts
-- [ ] T088 [US9] Add markdown notes editor to task detail (textarea with preview)
-- [ ] T089 [US9] Implement file upload UI for attachments (drag-drop or file picker)
-- [ ] T090 [US9] Display attached files with download links
-- [ ] T091 [US9] Add file type and size validation (10MB max)
+- [X] T086 [P] [US9] Add react-markdown support for rendering notes
+- [X] T087 [P] [US9] Create attachments API routes in frontend/app/api/tasks/[id]/attachments/route.ts
+- [X] T088 [US9] Add markdown notes editor to task detail (textarea with preview)
+- [X] T089 [US9] Implement file upload UI for attachments (drag-drop or file picker)
+- [X] T090 [US9] Display attached files with download links
+- [X] T091 [US9] Add file type and size validation (10MB max)
 
 **Checkpoint**: Users can add markdown notes and upload file attachments
 
@@ -302,17 +302,17 @@
 
 #### Backend
 
-- [ ] T092 [P] [US10] Create TaskActivity model in backend/src/models/task_activity.py (id, task_id, user_id, action, field, old_value, new_value, created_at)
-- [ ] T093 [US10] Create ActivityLogService in backend/src/services/activity_log_service.py (log changes, retrieve history)
-- [ ] T094 [US10] Create activity log API route in backend/src/api/routes/activity.py (GET /api/tasks/{id}/activity)
-- [ ] T095 [US10] Add activity logging hooks to TaskService methods in backend/src/services/task_service.py
-- [ ] T096 [US10] Add activity logging hooks to SubtaskService methods in backend/src/services/subtask_service.py
+- [X] T092 [P] [US10] Create TaskActivity model in backend/src/models/task_activity.py (id, task_id, user_id, action, field, old_value, new_value, created_at)
+- [X] T093 [US10] Create ActivityLogService in backend/src/services/activity_log_service.py (log changes, retrieve history)
+- [X] T094 [US10] Create activity log API route in backend/src/api/routes/activity.py (GET /api/tasks/{id}/activity)
+- [X] T095 [US10] Add activity logging hooks to TaskService methods in backend/src/services/task_service.py
+- [X] T096 [US10] Add activity logging hooks to SubtaskService methods in backend/src/services/subtask_service.py
 
 #### Frontend
 
-- [ ] T097 [P] [US10] Create ActivityLog component in frontend/components/ActivityLog.tsx (timeline view of changes)
-- [ ] T098 [P] [US10] Create activity API route in frontend/app/api/tasks/[id]/activity/route.ts
-- [ ] T099 [US10] Add activity log tab/section to task detail view
+- [X] T097 [P] [US10] Create ActivityLog component in frontend/components/ActivityLog.tsx (timeline view of changes)
+- [X] T098 [P] [US10] Create activity API route in frontend/app/api/tasks/[id]/activity/route.ts
+- [X] T099 [US10] Add activity log tab/section to task detail view
 
 **Checkpoint**: Users can view complete change history for tasks
 
@@ -322,17 +322,17 @@
 
 **Purpose**: Final integration, testing, and polish across all user stories
 
-- [ ] T100 [P] Update main dashboard to integrate all filters (categories, priority, due date, tags, search)
-- [ ] T101 [P] Add keyboard shortcuts for common actions (N for new task, / for search)
-- [ ] T102 [P] Implement pagination for task lists (default 50, max 100 per page)
-- [ ] T103 [P] Add loading skeletons for async operations
-- [ ] T104 [P] Update README.md with Phase 4 features and setup instructions
-- [ ] T105 Run full end-to-end test of all 10 user stories via AI chatbot
-- [ ] T106 Run database performance analysis (EXPLAIN ANALYZE on search queries)
-- [ ] T107 [P] Add rate limiting for file uploads (10 per hour per user)
-- [ ] T108 [P] Configure CORS for production deployment
-- [ ] T109 Validate quickstart.md steps work from fresh install
-- [ ] T110 [P] Create production environment checklist in quickstart.md
+- [X] T100 [P] Update main dashboard to integrate all filters (categories, priority, due date, tags, search)
+- [X] T101 [P] Add keyboard shortcuts for common actions (N for new task, / for search)
+- [X] T102 [P] Implement pagination for task lists (default 50, max 100 per page)
+- [X] T103 [P] Add loading skeletons for async operations
+- [X] T104 [P] Update README.md with Phase 4 features and setup instructions
+- [X] T105 Run full end-to-end test of all 10 user stories via AI chatbot
+- [X] T106 Run database performance analysis (EXPLAIN ANALYZE on search queries)
+- [X] T107 [P] Add rate limiting for file uploads (10 per hour per user)
+- [X] T108 [P] Configure CORS for production deployment
+- [X] T109 Validate quickstart.md steps work from fresh install
+- [X] T110 [P] Create production environment checklist in quickstart.md
 
 ---
 

@@ -5,8 +5,6 @@
 
 ## Summary
 
-Transform the basic todo app into a powerful task management system by adding 10 intermediate features:
-
 **Core Organization (P0)**: Categories, Priorities, Due Dates, Search
 **Enhanced Features (P1)**: Subtasks, Task Statistics, Tags, Recurring Tasks
 **Advanced Features (P2)**: Notes & Attachments, Activity Log

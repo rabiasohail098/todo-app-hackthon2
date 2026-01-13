@@ -1,15 +1,19 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Task, TaskUpdate } from "@/types";
 import TaskForm from "@/components/TaskForm";
 import TaskList from "@/components/TaskList";
+import SearchBar from "@/components/SearchBar";
+import TaskFilters, { FilterState } from "@/components/TaskFilters";
+import TaskSkeleton from "@/components/TaskSkeleton";
 import { apiClient } from "@/lib/api";
 import { signOut } from "@/lib/auth-client";
-import { LogOut, Settings, MessageSquare } from "lucide-react";
+import { LogOut, Settings, MessageSquare, BarChart3 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageToggle from "@/components/LanguageToggle";
 import BackgroundToggle from "@/components/BackgroundToggle";
@@ -29,6 +33,14 @@ export default function DashboardPage() {
   const [showSettings, setShowSettings] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
   const [currentView, setCurrentView] = useState<'list' | 'grid' | 'calendar' | 'timeline'>('list');
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [filters, setFilters] = useState<FilterState>({
+    status: "all",
+    categoryId: null,
+    priority: "all",
+    dueDateFilter: "all",
+    tagIds: [],
+  });
   const { backgroundMode } = useApp();
   const t = useTranslation();
 
@@ -60,22 +72,44 @@ export default function DashboardPage() {
   }, []);
 
   /**
-   * Fetch tasks on component mount.
+   * Fetch all tasks for the current user with optional search and filters.
+   * Wrapped in useCallback to prevent infinite loops
    */
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-
-  /**
-   * Fetch all tasks for the current user.
-   */
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Fetch from our Next.js API route (shared store)
-      const response = await fetch("/api/tasks");
+      // Build query parameters
+      const params = new URLSearchParams();
+
+      // Add search
+      if (searchQuery) {
+        params.append("search", searchQuery);
+      }
+
+      // Add filters
+      if (filters.status !== "all") {
+        params.append("is_completed", filters.status === "completed" ? "true" : "false");
+      }
+      if (filters.categoryId !== null) {
+        params.append("category_id", filters.categoryId.toString());
+      }
+      if (filters.priority !== "all") {
+        params.append("priority", filters.priority);
+      }
+      if (filters.dueDateFilter !== "all") {
+        params.append("due_date_filter", filters.dueDateFilter);
+      }
+      if (filters.tagIds.length > 0) {
+        filters.tagIds.forEach((tagId) => {
+          params.append("tag_ids", tagId.toString());
+        });
+      }
+
+      // Fetch from our Next.js API route
+      const url = `/api/tasks${params.toString() ? `?${params.toString()}` : ""}`;
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error("Failed to fetch tasks");
       }
@@ -86,7 +120,29 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [searchQuery, filters]); // Dependencies: only re-create when search or filters change
+
+  /**
+   * Fetch tasks on component mount and when search query or filters change.
+   */
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
+
+  /**
+   * Handle search query change.
+   * Wrapped in useCallback to prevent infinite loops
+   */
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+  }, []);
+
+  /**
+   * Handle filter change.
+   */
+  const handleFilterChange = useCallback((newFilters: FilterState) => {
+    setFilters(newFilters);
+  }, []);
 
   /**
    * Handle task added.
@@ -174,6 +230,48 @@ export default function DashboardPage() {
   };
 
   /**
+   * Handle tag click - filter tasks by tag.
+   */
+  const handleTagClick = (tagId: number, tagName: string) => {
+    // Toggle tag in filters
+    const newTagIds = filters.tagIds.includes(tagId)
+      ? filters.tagIds.filter((id) => id !== tagId)
+      : [...filters.tagIds, tagId];
+
+    setFilters({ ...filters, tagIds: newTagIds });
+  };
+
+  /**
+   * Handle keyboard shortcuts.
+   */
+  useKeyboardShortcuts({
+    onNewTask: () => {
+      // Focus on task title input
+      const titleInput = document.querySelector<HTMLInputElement>('input[id="title"]');
+      if (titleInput) {
+        titleInput.focus();
+        titleInput.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    },
+    onSearch: () => {
+      // Focus on search input
+      const searchInput = document.querySelector<HTMLInputElement>('input[type="search"]');
+      if (searchInput) {
+        searchInput.focus();
+        searchInput.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    },
+    onEscape: () => {
+      // Close settings dropdown
+      setShowSettings(false);
+      // Blur active element
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+    },
+  });
+
+  /**
    * Handle user logout.
    */
   const handleLogout = async () => {
@@ -203,6 +301,18 @@ export default function DashboardPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Statistics button */}
+            <button
+              onClick={() => router.push("/dashboard/statistics")}
+              className="flex items-center gap-2 px-4 py-3 glass hover:glass-strong rounded-xl transition-all transform hover:scale-105 group"
+              aria-label="Statistics"
+            >
+              <BarChart3 size={20} className="text-blue-600 dark:text-blue-400 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors" />
+              <span className="hidden sm:inline font-semibold bg-gradient-to-r from-blue-600 to-green-600 dark:from-blue-400 dark:to-green-400 bg-clip-text text-transparent">
+                {t.statistics || "Statistics"}
+              </span>
+            </button>
+
             {/* AI Chat button */}
             <button
               onClick={() => router.push("/chat")}
@@ -258,19 +368,33 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Task Form */}
+        {/* Task Form - always rendered to prevent remounting */}
         <TaskForm onTaskAdded={handleTaskAdded} />
 
-        {/* Loading State */}
-        {isLoading && (
-          <div className="text-center py-12 fade-in">
-            <p className="text-zinc-500 dark:text-zinc-400">{t.loadingTasks}</p>
+        {/* Search Bar */}
+        <SearchBar onSearch={handleSearch} />
+
+        {/* Search Results Count */}
+        {searchQuery && !isLoading && (
+          <div className="text-sm text-zinc-600 dark:text-zinc-400 fade-in">
+            {tasks.length > 0
+              ? `Found ${tasks.length} task(s) matching "${searchQuery}"`
+              : `No tasks found matching "${searchQuery}"`}
           </div>
         )}
 
-        {/* View Toggle and Task List */}
-        {!isLoading && (
-          <div className="space-y-6">
+        {/* Filters and Task List */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Filters Sidebar - always rendered to prevent remounting */}
+          <div className="lg:col-span-1">
+            <TaskFilters
+              onFilterChange={handleFilterChange}
+              className="sticky top-6"
+            />
+          </div>
+
+          {/* Main Task List */}
+          <div className="lg:col-span-3 space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100 text-fade-up">
                 {t.yourTasks}
@@ -281,16 +405,23 @@ export default function DashboardPage() {
               />
             </div>
 
-            <TaskList
-              tasks={tasks}
-              onToggle={handleTaskToggle}
-              onUpdate={handleTaskUpdate}
-              onDelete={handleTaskDelete}
-              className="fade-in"
-              viewMode={currentView === 'grid' ? 'grid' : 'list'}
-            />
+            {/* Show skeleton while loading tasks, then show task list */}
+            {isLoading ? (
+              <TaskSkeleton count={5} />
+            ) : (
+              <TaskList
+                tasks={tasks}
+                onToggle={handleTaskToggle}
+                onUpdate={handleTaskUpdate}
+                onDelete={handleTaskDelete}
+                onTagClick={handleTagClick}
+                className="fade-in"
+                viewMode={currentView === 'grid' ? 'grid' : 'list'}
+                searchQuery={searchQuery}
+              />
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

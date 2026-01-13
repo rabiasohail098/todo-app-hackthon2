@@ -7,7 +7,8 @@ A full-stack task management web application with user authentication and multi-
 This project implements a complete todo application with:
 - **Phase 1**: CLI-based task manager (legacy)
 - **Phase 2**: Modern web application with authentication and cloud database
-- **Phase 3**: AI-powered chatbot for task management via natural language (current)
+- **Phase 3**: AI-powered chatbot for task management via natural language
+- **Phase 4**: Kubernetes deployment with Helm charts (current)
 
 ## Tech Stack
 
@@ -44,6 +45,16 @@ This project implements a complete todo application with:
 - Delete tasks with confirmation
 - Optimistic UI updates
 
+✅ **Advanced Task Features (Phase 4)**
+- **Categories**: Organize tasks with colored categories and custom icons
+- **Priorities**: Set task priority levels (Critical, High, Medium, Low)
+- **Due Dates**: Assign due dates with natural language parsing
+- **Search**: Full-text search across task titles, descriptions, and notes
+- **Subtasks**: Break down tasks into checklist items with progress tracking
+- **Statistics**: View productivity charts and completion analytics
+- **Tags**: Add multiple hashtags to tasks for flexible organization
+- **Recurring Tasks**: Create daily, weekly, or monthly recurring tasks
+
 ✅ **Security**
 - User isolation (Golden Rule: all queries include WHERE user_id filter)
 - JWT validation on all protected endpoints
@@ -64,6 +75,10 @@ This project implements a complete todo application with:
 - Conversation history with persistence
 - Automatic language translation
 - Create, list, complete, delete, update tasks via chat
+- Intelligent parsing of categories, priorities, due dates
+- Hashtag parsing for automatic tagging
+- Recurring task pattern recognition
+- Subtask management via natural language
 - Stateless AI agent architecture
 - Beautiful glassmorphic chat interface
 
@@ -401,21 +416,83 @@ npm test  # (when tests are added)
 
 ## Deployment
 
-### Backend (Railway/Render)
+### Phase IV: Kubernetes Deployment (Development & Production)
+
+Deploy the Todo App to Kubernetes using Minikube (local) or any cloud provider.
+
+#### Quick Start
+
+```bash
+# 1. Start Minikube
+minikube start --cpus=4 --memory=4096
+minikube addons enable metrics-server
+
+# 2. Build Docker images
+docker build -t todo-frontend:latest ./frontend
+docker build -t todo-backend:latest ./backend
+
+# 3. Load images into Minikube
+minikube image load todo-frontend:latest
+minikube image load todo-backend:latest
+
+# 4. Deploy with Helm
+helm install todo-app helm/todo-app -n todo-app \
+  -f helm/todo-app/values-dev.yaml
+
+# 5. Port-forward and access
+kubectl port-forward service/frontend 3000:3000 -n todo-app &
+# Open http://localhost:3000
+```
+
+#### Documentation
+
+- **Quickstart**: `specs/006-phase-4-kubernetes/quickstart.md` (30 min setup)
+- **Deployment Guide**: `specs/006-phase-4-kubernetes/DEPLOYMENT.md` (step-by-step)
+- **Troubleshooting**: `specs/006-phase-4-kubernetes/TROUBLESHOOTING.md` (common issues)
+- **Pre/Post Checklist**: `specs/006-phase-4-kubernetes/CHECKLIST.md` (verification)
+- **DevOps Tools**: `specs/006-phase-4-kubernetes/DEVOPS.md` (Gordon, kubectl-ai, kagent)
+- **Environment Variables**: `specs/006-phase-4-kubernetes/ENVIRONMENT_VARIABLES.md` (config guide)
+- **Helm Chart**: `helm/todo-app/README.md` (chart reference)
+- **Architecture**: `specs/006-phase-4-kubernetes/spec.md` (full specification)
+- **Research**: `specs/006-phase-4-kubernetes/research.md` (design decisions)
+
+#### Key Features
+
+- **Containerized**: Multi-stage Docker builds for both frontend and backend
+- **Local K8s**: Minikube for development/testing
+- **Helm Charts**: Production-ready with dev/staging/prod values
+- **Auto-Scaling**: Horizontal Pod Autoscaler for high availability
+- **Health Checks**: Liveness and readiness probes
+- **ConfigMaps**: Non-sensitive configuration management
+- **Secrets**: Secure handling of API keys and credentials
+- **Service Discovery**: Internal service-to-service communication
+- **External Database**: Neon PostgreSQL integration
+
+#### Infrastructure Files
+
+- `frontend/Dockerfile` - Multi-stage Node.js build
+- `backend/Dockerfile` - Python Alpine runtime
+- `docker-compose.yml` - Local 3-service stack
+- `helm/todo-app/` - Complete Helm chart with templates
+- `k8s/setup.sh` - Minikube setup script
+
+### Traditional Deployment (Cloud Providers)
+
+#### Backend (Railway/Render)
 
 1. Push to GitHub
 2. Connect repository
 3. Add environment variables
 4. Deploy
 
-### Frontend (Vercel)
+#### Frontend (Vercel)
 
 1. Push to GitHub
 2. Import project in Vercel
 3. Add environment variables
 4. Deploy
 
-### Database (Neon)
+#### Database (Neon)
 
 Already serverless - no deployment needed!
 
@@ -490,7 +567,25 @@ For issues or questions, please open an issue on GitHub.
 
 - **Phase 1** (001-basic-todo-ops): CLI-based task manager ✅
 - **Phase 2** (002-web-app-transformation): Full-stack web application ✅
-- **Phase 3** (003-ai-todo-chatbot): AI-powered chatbot for task management ✅ Current
+- **Phase 3** (003-ai-todo-chatbot): AI-powered chatbot for task management ✅
+- **Phase 4** (006-phase-4-kubernetes): Kubernetes deployment with Helm charts ✅ **Current**
+
+### Phase 4 Highlights
+
+- **Docker Containerization**: Multi-stage builds for optimized images (150-300MB)
+- **Kubernetes Ready**: Deploy to Minikube or any K8s cluster
+- **Helm Charts**: Production-ready with values overrides (dev/staging/prod)
+- **Auto-Scaling**: HPA configured for high availability (2-5 replicas, 70% CPU trigger)
+- **Health Management**: Liveness and readiness probes for self-healing
+- **Configuration Management**: ConfigMaps and Secrets for secure deployments
+- **AI DevOps Tools**: Integration with Gordon, kubectl-ai, and kagent
+- **Comprehensive Docs**: 10+ guides covering deployment, troubleshooting, and best practices
+
+For detailed Phase 4 documentation, see:
+- `specs/006-phase-4-kubernetes/quickstart.md` - 30-minute quick start
+- `specs/006-phase-4-kubernetes/DEPLOYMENT.md` - Step-by-step deployment
+- `specs/006-phase-4-kubernetes/TROUBLESHOOTING.md` - Common issues & solutions
+- `specs/006-phase-4-kubernetes/CHECKLIST.md` - Pre/post deployment verification
 
 ### Phase 3 Highlights
 
