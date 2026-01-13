@@ -40,6 +40,6 @@ export const config = {
      * - images (/_next/image/*)
      * - favicon and other static assets
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)/"
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)"
   ],
 };

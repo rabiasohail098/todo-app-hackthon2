@@ -23,12 +23,42 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Validate required environment variables (FR-015, FR-016, FR-017)
+import sys
+
+REQUIRED_ENV_VARS = {
+    "DATABASE_URL": "Database connection string (PostgreSQL)",
+    "JWT_SECRET": "Secret key for JWT token generation",
+    "CORS_ORIGINS": "Allowed CORS origins (comma-separated)"
+}
+
+missing_vars = []
+for var, description in REQUIRED_ENV_VARS.items():
+    if not os.getenv(var):
+        missing_vars.append(f"  ❌ {var}: {description}")
+        print(f"❌ ERROR: {var} environment variable is not set", file=sys.stderr)
+        print(f"Fix: Add {var}=your-value to your .env file", file=sys.stderr)
+
+if missing_vars:
+    print("\n" + "=" * 60, file=sys.stderr)
+    print("❌ MISSING REQUIRED ENVIRONMENT VARIABLES", file=sys.stderr)
+    print("=" * 60, file=sys.stderr)
+    for var_msg in missing_vars:
+        print(var_msg, file=sys.stderr)
+    print("\nFix: Create a .env file in the backend directory with the required variables.", file=sys.stderr)
+    print(f"Location: {env_path}", file=sys.stderr)
+    print("=" * 60, file=sys.stderr)
+    sys.exit(1)
+
 # Load environment variables
 print("=" * 60)
 print("🚀 BACKEND STARTING WITH DEBUG MODE")
 print("=" * 60)
 print(f"Loaded .env file: {env_path}")
 print(f"File exists: {env_path.exists()}")
+print(f"✅ DATABASE_URL: ***{os.getenv('DATABASE_URL', 'MISSING')[-20:]}")
+print(f"✅ JWT_SECRET: {'*' * 20}")
+print(f"✅ CORS_ORIGINS: {os.getenv('CORS_ORIGINS', 'MISSING')}")
 print(f"OpenRouter API Key: {os.getenv('OPENAI_API_KEY', 'MISSING')[:30]}...")
 print(f"OpenRouter Base URL: {os.getenv('OPENAI_BASE_URL', 'MISSING')}")
 print(f"AI Model: {os.getenv('AI_MODEL', 'MISSING')}")
@@ -216,10 +246,16 @@ async def root():
 
 
 # Import and include routers
-from .routes import chat, health, tasks
+from .routes import categories, chat, health, tasks, subtasks, statistics, tags, attachments, activity
 
 app.include_router(health.router, tags=["Health"])
 app.include_router(tasks.router, prefix="/api", tags=["Tasks"])
+app.include_router(categories.router, prefix="/api", tags=["Categories"])  # Phase 4: US1
+app.include_router(subtasks.router, prefix="/api", tags=["Subtasks"])  # Phase 4: US5
+app.include_router(statistics.router, prefix="/api", tags=["Statistics"])  # Phase 4: US6
+app.include_router(tags.router, prefix="/api", tags=["Tags"])  # Phase 4: US7
+app.include_router(attachments.router, tags=["Attachments"])  # Phase 4: US9
+app.include_router(activity.router, tags=["Activity"])  # Phase 4: US10
 app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 
 

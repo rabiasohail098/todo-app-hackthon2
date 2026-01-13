@@ -16,47 +16,48 @@ interface AppContextType {
   toggleBackground: () => void;
   backgroundMode: BackgroundMode;
   setBackgroundMode: (mode: BackgroundMode) => void;
+  isInitialized: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+// Helper to safely get localStorage values (handles SSR)
+function getInitialTheme(): Theme {
+  if (typeof window === 'undefined') return 'light';
+  const saved = localStorage.getItem('theme') as Theme | null;
+  if (saved) return saved;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function getInitialLanguage(): Language {
+  if (typeof window === 'undefined') return 'en';
+  return (localStorage.getItem('language') as Language) || 'en';
+}
+
+function getInitialBackgroundEnabled(): boolean {
+  if (typeof window === 'undefined') return true;
+  const saved = localStorage.getItem('backgroundEnabled');
+  return saved === null ? true : saved === 'true';
+}
+
+function getInitialBackgroundMode(): BackgroundMode {
+  if (typeof window === 'undefined') return 'gradient';
+  return (localStorage.getItem('backgroundMode') as BackgroundMode) || 'gradient';
+}
+
 export function AppWrapper({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light');
-  const [language, setLanguage] = useState<Language>('en');
-  const [backgroundEnabled, setBackgroundEnabled] = useState<boolean>(true);
-  const [backgroundMode, setBackgroundModeState] = useState<BackgroundMode>('gradient');
+  // Initialize state with localStorage values to prevent cascading re-renders
+  const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const [language, setLanguage] = useState<Language>(getInitialLanguage);
+  const [backgroundEnabled, setBackgroundEnabled] = useState<boolean>(getInitialBackgroundEnabled);
+  const [backgroundMode, setBackgroundModeState] = useState<BackgroundMode>(getInitialBackgroundMode);
+  const [isInitialized, setIsInitialized] = useState(false);
 
+  // Single useEffect to apply theme class and mark as initialized
   useEffect(() => {
-    // Check for saved theme in localStorage or default to system preference
-    const savedTheme = localStorage.getItem('theme') as Theme | null;
-    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    const initialTheme = savedTheme || systemTheme;
-    
-    setTheme(initialTheme);
-    document.documentElement.classList.toggle('dark', initialTheme === 'dark');
-  }, []);
-
-  useEffect(() => {
-    // Check for saved language in localStorage
-    const savedLanguage = localStorage.getItem('language') as Language | null;
-    if (savedLanguage) {
-      setLanguage(savedLanguage);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Check for saved background preference
-    const savedBackground = localStorage.getItem('backgroundEnabled');
-    if (savedBackground !== null) {
-      setBackgroundEnabled(savedBackground === 'true');
-    }
-
-    // Check for saved background mode
-    const savedMode = localStorage.getItem('backgroundMode') as BackgroundMode | null;
-    if (savedMode) {
-      setBackgroundModeState(savedMode);
-    }
-  }, []);
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    setIsInitialized(true);
+  }, [theme]);
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -97,7 +98,8 @@ export function AppWrapper({ children }: { children: ReactNode }) {
       backgroundEnabled,
       toggleBackground,
       backgroundMode,
-      setBackgroundMode
+      setBackgroundMode,
+      isInitialized
     }}>
       {children}
     </AppContext.Provider>

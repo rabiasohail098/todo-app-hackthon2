@@ -27,7 +27,7 @@ async function createBackendToken(userId: string): Promise<string> {
   return token;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     // Get session from better-auth
     const session = await auth.api.getSession({
@@ -43,7 +43,14 @@ export async function GET() {
 
     const backendToken = await createBackendToken(session.user.id);
 
-    const response = await fetch(`${BACKEND_URL}/api/tasks`, {
+    // Extract query parameters from request URL
+    const { searchParams } = new URL(req.url);
+    const queryString = searchParams.toString();
+
+    // Build backend URL with query parameters
+    const backendUrl = `${BACKEND_URL}/api/tasks${queryString ? `?${queryString}` : ""}`;
+
+    const response = await fetch(backendUrl, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${backendToken}`,
