@@ -65,11 +65,11 @@ print(f"AI Model: {os.getenv('AI_MODEL', 'MISSING')}")
 print("=" * 60)
 
 
-# Create FastAPI application
+# Create FastAPI application (lifespan added in Phase 5 section below)
 app = FastAPI(
     title="Todo App API",
-    description="RESTful API for multi-tenant task management",
-    version="1.0.0",
+    description="RESTful API for multi-tenant task management with event-driven architecture",
+    version="2.0.0",
 )
 
 # Get CORS origins from environment variable
@@ -94,6 +94,7 @@ app.add_middleware(
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from contextlib import asynccontextmanager
 import atexit
 
 # Initialize background scheduler
@@ -179,6 +180,41 @@ logger.info("⏰ APScheduler started - recurring tasks will be generated every h
 atexit.register(lambda: scheduler.shutdown())
 
 
+# =============================================================================
+# Phase 5: Kafka Producer and Metrics Setup
+# =============================================================================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Application lifespan handler for startup/shutdown tasks.
+    """
+    # Startup
+    logger.info("🚀 Starting Phase 5 services...")
+
+    # Initialize Kafka producer (non-blocking, will connect on first use)
+    kafka_enabled = os.getenv("KAFKA_ENABLED", "false").lower() == "true"
+    if kafka_enabled:
+        try:
+            from ..services.kafka.producer import get_kafka_producer
+            producer = await get_kafka_producer()
+            logger.info("✅ Kafka producer initialized")
+        except Exception as e:
+            logger.warning(f"⚠️ Kafka producer not available: {e}")
+
+    yield
+
+    # Shutdown
+    logger.info("🛑 Shutting down Phase 5 services...")
+    if kafka_enabled:
+        try:
+            from ..services.kafka.producer import shutdown_kafka_producer
+            await shutdown_kafka_producer()
+            logger.info("✅ Kafka producer stopped")
+        except Exception as e:
+            logger.error(f"Error stopping Kafka producer: {e}")
+
+
 # Global exception handlers
 
 
@@ -257,6 +293,29 @@ app.include_router(tags.router, prefix="/api", tags=["Tags"])  # Phase 4: US7
 app.include_router(attachments.router, tags=["Attachments"])  # Phase 4: US9
 app.include_router(activity.router, tags=["Activity"])  # Phase 4: US10
 app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
+
+
+# =============================================================================
+# Phase 5: Prometheus Metrics Endpoint
+# =============================================================================
+
+@app.get("/metrics")
+async def metrics():
+    """
+    Prometheus metrics endpoint.
+
+    Returns metrics in Prometheus exposition format for scraping.
+    """
+    try:
+        from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+        from fastapi.responses import Response
+
+        return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+    except ImportError:
+        return JSONResponse(
+            status_code=501,
+            content={"detail": "Prometheus client not installed"}
+        )
 
 
 if __name__ == "__main__":

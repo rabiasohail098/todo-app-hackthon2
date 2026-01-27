@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "TaskDeleted",
+  "namespace": "com.todoapp.events",
+  "doc": "Event emitted when a task is deleted",
+  "fields": [
+    {"name": "eventId", "type": "string", "doc": "Unique event identifier"},
+    {"name": "eventTimestamp", "type": "long", "doc": "Event timestamp in milliseconds"},
+    {"name": "userId", "type": "string", "doc": "User who deleted the task"},
+    {"name": "taskId", "type": "string", "doc": "Unique task identifier"},
+    {"name": "title", "type": "string", "doc": "Task title (for audit)"},
+    {"name": "reason", "type": ["null", "string"], "default": null, "doc": "Deletion reason"}
+  ]
+}

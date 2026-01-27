@@ -6,14 +6,13 @@ Calculate next occurrence dates for recurring tasks
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 from typing import Optional
-import sys
-sys.path.append('/mnt/e/q4-hackathon/todo-app-hackthon2/backend/src')
-from models.enums import RecurrencePattern
+
+from ..models.enums import RecurrencePattern
 
 
 def calculate_next_occurrence(
     current_date: datetime,
-    pattern: RecurrencePattern,
+    pattern: RecurrencePattern | str,
     interval: int = 1
 ) -> datetime:
     """
@@ -21,7 +20,7 @@ def calculate_next_occurrence(
 
     Args:
         current_date: Current occurrence date
-        pattern: Recurrence pattern (daily, weekly, monthly, custom)
+        pattern: Recurrence pattern (daily, weekly, monthly, custom) - can be enum or string
         interval: How often to recur (e.g., every 2 weeks)
 
     Returns:
@@ -35,16 +34,22 @@ def calculate_next_occurrence(
         >>> calculate_next_occurrence(now, RecurrencePattern.WEEKLY, 2)
         datetime.datetime(2026, 1, 14, 12, 0, 0)
     """
-    if pattern == RecurrencePattern.DAILY:
+    # Normalize pattern to lowercase string for comparison
+    if isinstance(pattern, RecurrencePattern):
+        pattern_str = pattern.value
+    else:
+        pattern_str = str(pattern).lower()
+
+    if pattern_str == "daily":
         return current_date + timedelta(days=interval)
 
-    elif pattern == RecurrencePattern.WEEKLY:
+    elif pattern_str == "weekly":
         return current_date + timedelta(weeks=interval)
 
-    elif pattern == RecurrencePattern.MONTHLY:
+    elif pattern_str == "monthly":
         return current_date + relativedelta(months=interval)
 
-    elif pattern == RecurrencePattern.CUSTOM:
+    elif pattern_str == "custom":
         # TODO: Implement cron-like custom patterns
         # For now, default to daily
         return current_date + timedelta(days=interval)
@@ -138,12 +143,12 @@ def get_recurrence_interval_from_text(text: str) -> tuple[RecurrencePattern, int
     return pattern, interval
 
 
-def format_recurrence_text(pattern: RecurrencePattern, interval: int = 1) -> str:
+def format_recurrence_text(pattern: RecurrencePattern | str, interval: int = 1) -> str:
     """
     Format recurrence pattern as human-readable text.
 
     Args:
-        pattern: Recurrence pattern
+        pattern: Recurrence pattern (enum or string)
         interval: Recurrence interval
 
     Returns:
@@ -156,22 +161,28 @@ def format_recurrence_text(pattern: RecurrencePattern, interval: int = 1) -> str
         >>> format_recurrence_text(RecurrencePattern.WEEKLY, 2)
         "Every 2 weeks"
     """
-    if pattern == RecurrencePattern.DAILY:
+    # Normalize pattern to lowercase string for comparison
+    if isinstance(pattern, RecurrencePattern):
+        pattern_str = pattern.value
+    else:
+        pattern_str = str(pattern).lower()
+
+    if pattern_str == "daily":
         if interval == 1:
             return "Daily"
         return f"Every {interval} days"
 
-    elif pattern == RecurrencePattern.WEEKLY:
+    elif pattern_str == "weekly":
         if interval == 1:
             return "Weekly"
         return f"Every {interval} weeks"
 
-    elif pattern == RecurrencePattern.MONTHLY:
+    elif pattern_str == "monthly":
         if interval == 1:
             return "Monthly"
         return f"Every {interval} months"
 
-    elif pattern == RecurrencePattern.CUSTOM:
+    elif pattern_str == "custom":
         return "Custom recurrence"
 
     return "Unknown recurrence"
@@ -179,7 +190,7 @@ def format_recurrence_text(pattern: RecurrencePattern, interval: int = 1) -> str
 
 def get_next_occurrences(
     start_date: datetime,
-    pattern: RecurrencePattern,
+    pattern: RecurrencePattern | str,
     interval: int = 1,
     count: int = 5
 ) -> list[datetime]:

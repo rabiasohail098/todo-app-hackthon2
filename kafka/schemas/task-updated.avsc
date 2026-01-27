@@ -1,0 +1,15 @@
+{
+  "type": "record",
+  "name": "TaskUpdated",
+  "namespace": "com.todoapp.events",
+  "doc": "Event emitted when a task is updated",
+  "fields": [
+    {"name": "eventId", "type": "string", "doc": "Unique event identifier"},
+    {"name": "eventTimestamp", "type": "long", "doc": "Event timestamp in milliseconds"},
+    {"name": "userId", "type": "string", "doc": "User who updated the task"},
+    {"name": "taskId", "type": "string", "doc": "Unique task identifier"},
+    {"name": "changes", "type": {"type": "map", "values": "string"}, "doc": "Map of field changes"},
+    {"name": "previousValues", "type": {"type": "map", "values": ["null", "string"]}, "doc": "Previous field values"},
+    {"name": "newValues", "type": {"type": "map", "values": ["null", "string"]}, "doc": "New field values"}
+  ]
+}

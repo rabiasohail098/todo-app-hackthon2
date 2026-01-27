@@ -1,4 +1,4 @@
-claude# Python
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -66,3 +66,18 @@ dist/
 # Testing (JavaScript)
 coverage/
 .nyc_output/
+
+# Claude Code temp files
+tmpclaude-*
+tmpclaude-*-cwd
+
+# Lock files (optional - can be committed)
+# uv.lock
+# package-lock.json
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~

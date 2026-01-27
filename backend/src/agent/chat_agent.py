@@ -402,6 +402,57 @@ DELETE SUBTASK:
 If you're just chatting or need clarification, respond normally without JSON.
 Be friendly and helpful! Always mention task IDs when listing tasks."""
 
+    async def _generate_description(self, title: str) -> str:
+        """Generate a task description based on the title using AI.
+
+        Args:
+            title: Task title
+
+        Returns:
+            Generated description
+        """
+        if self.language == "ur":
+            prompt = f"یہ ٹاسک کے عنوان کے لیے ایک مختصر تفصیل لکھیں (صرف 1-2 جملے، صرف اردو میں):\n\nعنوان: {title}\n\nتفصیل:"
+        else:
+            prompt = f"Write a brief description for this task title (1-2 sentences only, no extra text):\n\nTitle: {title}\n\nDescription:"
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost:3000",
+            "X-Title": "Todo App AI Assistant",
+        }
+
+        data = {
+            "model": self.model,
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.7,
+            "max_tokens": 100,
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                response = await client.post(
+                    f"{self.base_url}/chat/completions",
+                    headers=headers,
+                    json=data
+                )
+                response.raise_for_status()
+                result = response.json()
+                description = result["choices"][0]["message"]["content"].strip()
+                # Clean up any prefixes like "Description:" that AI might add
+                description = description.replace("Description:", "").replace("تفصیل:", "").strip()
+                print(f"Generated description: {description}")
+                return description
+        except Exception as e:
+            print(f"Description generation failed: {e}")
+            # Fallback to a simple description
+            if self.language == "ur":
+                return f"'{title}' کا کام مکمل کریں"
+            return f"Complete the task: {title}"
+
     async def _translate_to_urdu(self, english_text: str) -> str:
         """Translate English response to Urdu as fallback.
 
@@ -495,10 +546,17 @@ Urdu (only output the translation, nothing else):"""
         # LIST TASKS
         # ===================
         list_patterns = [
-            (r'^(?:show|list|view|display|get)\s+(?:all\s+)?(?:my\s+)?tasks?\s*$', "all"),
-            (r'^(?:show|list|view)\s+(?:all\s+)?(?:my\s+)?(?:incomplete|pending|active)\s+tasks?\s*$', "incomplete"),
-            (r'^(?:show|list|view)\s+(?:all\s+)?(?:my\s+)?(?:completed?|done|finished)\s+tasks?\s*$', "completed"),
-            (r'^(?:میرے\s+)?(?:تمام|سارے)\s+(?:ٹاسک|کام)\s*(?:دکھائیں|دکھاؤ)?\s*$', "all"),
+            # English patterns - handle "show me all my tasks", "show all tasks", "list my tasks", etc.
+            (r'^(?:show|list|view|display|get)\s+(?:me\s+)?(?:all\s+)?(?:my\s+)?(?:the\s+)?tasks?\s*$', "all"),
+            (r'^(?:show|list|view)\s+(?:me\s+)?(?:all\s+)?(?:my\s+)?(?:incomplete|pending|active|remaining)\s+tasks?\s*$', "incomplete"),
+            (r'^(?:show|list|view)\s+(?:me\s+)?(?:all\s+)?(?:my\s+)?(?:completed?|done|finished)\s+tasks?\s*$', "completed"),
+            # More flexible patterns
+            (r'^(?:what\s+are\s+)?(?:my\s+)?(?:all\s+)?tasks?\s*\??$', "all"),
+            (r'^tasks?\s*$', "all"),
+            (r'^my\s+tasks?\s*$', "all"),
+            (r'^all\s+(?:my\s+)?tasks?\s*$', "all"),
+            # Urdu patterns
+            (r'^(?:میرے\s+)?(?:تمام|سارے|سب)\s+(?:ٹاسک|کام)\s*(?:دکھائیں|دکھاؤ)?\s*$', "all"),
             (r'^(?:نامکمل|باقی)\s+(?:ٹاسک|کام)\s*(?:دکھائیں|دکھاؤ)?\s*$', "incomplete"),
             (r'^(?:مکمل|ختم)\s+(?:ٹاسک|کام)\s*(?:دکھائیں|دکھاؤ)?\s*$', "completed"),
         ]
@@ -680,7 +738,19 @@ Urdu (only output the translation, nothing else):"""
         elif current_state == ConversationState.AWAITING_DESCRIPTION:
             # User provided description or skipped
             parsed = self._parse_user_response(message, "description")
-            if not parsed.get("skip"):
+            msg_lower = message.lower().strip()
+
+            # Check if user wants AI to generate description
+            generate_keywords = ["write", "generate", "create", "suggest", "you write", "tum likho", "آپ لکھیں", "خود لکھو"]
+            should_generate = any(kw in msg_lower for kw in generate_keywords)
+
+            if should_generate:
+                # Generate description using AI
+                pending = self._get_pending_task()
+                title = pending.get("title", "")
+                generated_desc = await self._generate_description(title)
+                self._update_pending_task(description=generated_desc)
+            elif not parsed.get("skip"):
                 self._update_pending_task(description=parsed.get("value", ""))
 
             self._set_state(ConversationState.AWAITING_CATEGORY)
@@ -758,7 +828,13 @@ Urdu (only output the translation, nothing else):"""
             # User provided due date or skipped
             parsed = self._parse_user_response(message, "due_date")
             if not parsed.get("skip") and parsed.get("value"):
-                self._update_pending_task(due_date=parsed.get("value"))
+                # Convert datetime to ISO string for JSON serialization
+                due_date_value = parsed.get("value")
+                if isinstance(due_date_value, datetime):
+                    due_date_str = due_date_value.isoformat()
+                else:
+                    due_date_str = str(due_date_value)
+                self._update_pending_task(due_date=due_date_str)
 
             self._set_state(ConversationState.AWAITING_RECURRENCE)
             recurrence_options = self._format_recurrence_options()
@@ -855,6 +931,15 @@ Urdu (only output the translation, nothing else):"""
                 }
                 recurrence_pattern = recurrence_map.get(recurrence_str)
 
+            # Parse due_date from ISO string back to datetime
+            due_date = None
+            due_date_str = pending_task.get("due_date")
+            if due_date_str:
+                try:
+                    due_date = datetime.fromisoformat(due_date_str)
+                except (ValueError, TypeError):
+                    pass
+
             # Create task
             task_data = TaskCreate(
                 title=pending_task.get("title", ""),
@@ -862,24 +947,32 @@ Urdu (only output the translation, nothing else):"""
                 is_completed=False,
                 category_id=category_id,
                 priority=priority,
-                due_date=pending_task.get("due_date"),
+                due_date=due_date,
                 recurrence_pattern=recurrence_pattern,
                 recurrence_interval=1,
             )
 
             task = TaskService.create_task(self.session, task_data, self.user_id)
 
-            # Handle tags
+            # Handle tags with error handling
             tag_names = pending_task.get("tags", [])
             if tag_names:
-                from ..services.tag_service import TagService
-                from ..models.tag import TagCreate
+                try:
+                    from ..services.tag_service import TagService
+                    from ..models.tag import TagCreate
 
-                for tag_name in tag_names:
-                    if tag_name and tag_name.strip():
-                        tag_data = TagCreate(name=tag_name.strip())
-                        tag = TagService.create_tag(self.session, tag_data, self.user_id)
-                        TagService.add_tag_to_task(self.session, task.id, tag.id)
+                    for tag_name in tag_names:
+                        if tag_name and tag_name.strip():
+                            try:
+                                tag_data = TagCreate(name=tag_name.strip())
+                                tag = TagService.create_tag(self.session, tag_data, self.user_id)
+                                TagService.add_tag_to_task(self.session, task.id, tag.id)
+                            except Exception as tag_error:
+                                print(f"Warning: Failed to add tag '{tag_name}': {tag_error}")
+                                # Continue with other tags even if one fails
+                except Exception as tags_error:
+                    print(f"Warning: Error handling tags: {tags_error}")
+                    # Don't fail the whole task creation because of tags
 
             # Clear state
             self._clear_pending_task()

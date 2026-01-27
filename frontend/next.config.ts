@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   serverExternalPackages: ["better-auth"],
+  // Empty turbopack config to silence the webpack/turbopack warning
+  // Turbopack is the default in Next.js 16
+  turbopack: {},
   webpack: (config, { isServer }) => {
     if (!isServer) {
       // For client-side builds, provide empty implementations for Node.js-specific modules
@@ -22,8 +25,6 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
-  // Explicitly set turbopack config to avoid errors
-  turbopack: {},
 };
 
 export default nextConfig;

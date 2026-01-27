@@ -9,6 +9,18 @@ import { SignJWT } from "jose";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const JWT_SECRET = process.env.BETTER_AUTH_SECRET;
+const FETCH_TIMEOUT = 60000; // 60 seconds for chat (LLM calls can be slow)
+
+// Helper to create fetch with timeout
+function fetchWithTimeout(url: string, options: RequestInit, timeout: number = FETCH_TIMEOUT): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  return fetch(url, {
+    ...options,
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeoutId));
+}
 
 // Create a JWT token for the backend
 async function createBackendToken(userId: string): Promise<string> {
@@ -44,7 +56,7 @@ export async function POST(req: Request) {
     const backendToken = await createBackendToken(session.user.id);
     const body = await req.json();
 
-    const response = await fetch(`${BACKEND_URL}/api/chat`, {
+    const response = await fetchWithTimeout(`${BACKEND_URL}/api/chat`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${backendToken}`,

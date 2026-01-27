@@ -47,9 +47,12 @@ class Task(TaskBase, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
     updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
+    # Override enum fields to store as strings (database constraint expects lowercase)
+    priority: str = Field(default="medium", nullable=False)  # type: ignore
+    recurrence_pattern: Optional[str] = Field(default=None, nullable=True)  # type: ignore
+
     # Phase 4: Database-only fields
     category_id: Optional[int] = Field(default=None, foreign_key="categories.id", nullable=True)
-    recurrence_pattern: Optional[RecurrencePattern] = Field(default=None, nullable=True)
     recurrence_interval: int = Field(default=1, nullable=False)
     next_recurrence_date: Optional[datetime] = Field(default=None, nullable=True)
     parent_recurrence_id: Optional[int] = Field(default=None, foreign_key="tasks.id", nullable=True)

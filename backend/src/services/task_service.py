@@ -33,15 +33,16 @@ class TaskService:
             user_id is ALWAYS from JWT token, never from request body
         """
         # Phase 4: Include all new fields from TaskCreate
+        # Note: Use .value for enums to ensure lowercase values match database constraints
         task = Task(
             title=task_data.title,
             description=task_data.description,
             is_completed=task_data.is_completed,
-            priority=task_data.priority,
+            priority=task_data.priority.value if task_data.priority else "medium",
             due_date=task_data.due_date,
             notes=task_data.notes,
             category_id=task_data.category_id,
-            recurrence_pattern=task_data.recurrence_pattern,
+            recurrence_pattern=task_data.recurrence_pattern.value if task_data.recurrence_pattern else None,
             recurrence_interval=task_data.recurrence_interval,
             user_id=user_id,
             created_at=datetime.utcnow(),
@@ -235,8 +236,9 @@ class TaskService:
             task.is_completed = task_data.is_completed
 
         # Phase 4: Update new fields
+        # Note: Use .value for enums to ensure lowercase values match database constraints
         if task_data.priority is not None:
-            task.priority = task_data.priority
+            task.priority = task_data.priority.value if hasattr(task_data.priority, 'value') else task_data.priority
         if task_data.due_date is not None:
             task.due_date = task_data.due_date
         if task_data.notes is not None:
@@ -244,13 +246,14 @@ class TaskService:
         if task_data.category_id is not None:
             task.category_id = task_data.category_id
         if task_data.recurrence_pattern is not None:
-            task.recurrence_pattern = task_data.recurrence_pattern
+            pattern_value = task_data.recurrence_pattern.value if hasattr(task_data.recurrence_pattern, 'value') else task_data.recurrence_pattern
+            task.recurrence_pattern = pattern_value
             # Recalculate next_recurrence_date if pattern changed
             if task.recurrence_pattern:
                 from ..utils.recurrence import calculate_next_occurrence
                 task.next_recurrence_date = calculate_next_occurrence(
                     datetime.utcnow(),
-                    task.recurrence_pattern,
+                    task_data.recurrence_pattern,
                     task.recurrence_interval
                 )
         if task_data.recurrence_interval is not None:

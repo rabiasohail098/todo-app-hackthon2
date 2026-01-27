@@ -9,6 +9,18 @@ import { SignJWT } from "jose";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const JWT_SECRET = process.env.BETTER_AUTH_SECRET;
+const FETCH_TIMEOUT = 30000; // 30 seconds
+
+// Helper to create fetch with timeout
+function fetchWithTimeout(url: string, options: RequestInit, timeout: number = FETCH_TIMEOUT): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  return fetch(url, {
+    ...options,
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeoutId));
+}
 
 // Create a JWT token for the backend
 async function createBackendToken(userId: string): Promise<string> {
@@ -42,7 +54,7 @@ export async function GET() {
 
     const backendToken = await createBackendToken(session.user.id);
 
-    const response = await fetch(`${BACKEND_URL}/api/chat/conversations`, {
+    const response = await fetchWithTimeout(`${BACKEND_URL}/api/chat/conversations`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${backendToken}`,
@@ -97,7 +109,7 @@ export async function POST() {
 
     const backendToken = await createBackendToken(session.user.id);
 
-    const response = await fetch(`${BACKEND_URL}/api/chat/conversations`, {
+    const response = await fetchWithTimeout(`${BACKEND_URL}/api/chat/conversations`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${backendToken}`,

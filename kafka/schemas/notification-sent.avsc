@@ -1,0 +1,16 @@
+{
+  "type": "record",
+  "name": "NotificationSent",
+  "namespace": "com.todoapp.events",
+  "doc": "Event emitted when a notification is sent",
+  "fields": [
+    {"name": "eventId", "type": "string", "doc": "Unique event identifier"},
+    {"name": "eventTimestamp", "type": "long", "doc": "Event timestamp in milliseconds"},
+    {"name": "userId", "type": "string", "doc": "Target user identifier"},
+    {"name": "notificationType", "type": {"type": "enum", "name": "NotificationType", "symbols": ["EMAIL", "PUSH", "SMS", "IN_APP"]}, "doc": "Notification type"},
+    {"name": "title", "type": "string", "doc": "Notification title"},
+    {"name": "body", "type": "string", "doc": "Notification body"},
+    {"name": "relatedTaskId", "type": ["null", "string"], "default": null, "doc": "Related task if applicable"},
+    {"name": "delivered", "type": "boolean", "default": false, "doc": "Delivery status"}
+  ]
+}

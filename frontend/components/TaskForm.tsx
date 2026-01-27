@@ -277,57 +277,64 @@ export default function TaskForm({ onTaskAdded }: TaskFormProps) {
         </div>
 
         {/* Category Selector */}
-        {categories.length > 0 && (
-          <div>
-            <label
-              htmlFor="category"
-              className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2"
+        <div>
+          <label
+            htmlFor="category"
+            className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2"
+          >
+            {language === "ur" ? "کیٹیگری" : "Category"}{" "}
+            <span className="text-zinc-400">({t.optional})</span>
+          </label>
+
+          {/* Dropdown Select with Create New button */}
+          <div className="flex gap-2">
+            <select
+              id="category"
+              value={selectedCategoryId ?? ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSelectedCategoryId(value ? Number(value) : null);
+              }}
+              className="flex-1 px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-zinc-800 dark:text-zinc-100 transition-all"
+              disabled={isLoading}
             >
-              {language === "ur" ? "کیٹیگری" : "Category"}{" "}
-              <span className="text-zinc-400">({t.optional})</span>
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {/* No category option */}
+              <option value="">
+                {language === "ur" ? "کیٹیگری منتخب کریں" : "Select Category"}
+              </option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.icon ? `${category.icon} ` : ""}{category.name}
+                </option>
+              ))}
+            </select>
+            <a
+              href="/categories"
+              className="px-3 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors text-sm font-medium whitespace-nowrap flex items-center gap-1"
+            >
+              ➕ {language === "ur" ? "نئی" : "New"}
+            </a>
+          </div>
+
+          {/* Selected category badge preview */}
+          {selectedCategoryId && categories.find(c => c.id === selectedCategoryId) && (
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                {language === "ur" ? "منتخب:" : "Selected:"}
+              </span>
+              <CategoryBadge
+                category={categories.find(c => c.id === selectedCategoryId)!}
+                size="sm"
+              />
               <button
                 type="button"
                 onClick={() => setSelectedCategoryId(null)}
-                className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
-                  selectedCategoryId === null
-                    ? "bg-purple-600 text-white"
-                    : "bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-600"
-                }`}
-                disabled={isLoading}
+                className="text-xs text-red-500 hover:text-red-600 dark:text-red-400"
               >
-                {language === "ur" ? "کوئی نہیں" : "None"}
+                {language === "ur" ? "ہٹائیں" : "Remove"}
               </button>
-
-              {/* Category options */}
-              {categories.map((category) => (
-                <button
-                  key={category.id}
-                  type="button"
-                  onClick={() => setSelectedCategoryId(category.id)}
-                  className={`transition-all ${
-                    selectedCategoryId === category.id
-                      ? "ring-2 ring-purple-500 ring-offset-2 dark:ring-offset-zinc-800"
-                      : ""
-                  }`}
-                  disabled={isLoading}
-                >
-                  <CategoryBadge category={category} size="sm" />
-                </button>
-              ))}
             </div>
-            <a
-              href="/categories"
-              className="inline-block mt-2 text-xs text-purple-600 dark:text-purple-400 hover:underline"
-            >
-              {language === "ur"
-                ? "کیٹیگریز منظم کریں →"
-                : "Manage Categories →"}
-            </a>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Priority Selector */}
         <div>

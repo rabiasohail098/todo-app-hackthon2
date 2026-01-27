@@ -25,7 +25,7 @@ if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is not set")
 
 
-def connect_with_retry(database_url: str, max_retries: int = 3, timeout: int = 10):
+def connect_with_retry(database_url: str, max_retries: int = 5, timeout: int = 30):
     """
     Create database engine with retry logic and exponential backoff.
 
@@ -91,7 +91,8 @@ def connect_with_retry(database_url: str, max_retries: int = 3, timeout: int = 1
 
 
 # Create database engine with retry logic (FR-011, FR-012, FR-013, FR-014)
-engine = connect_with_retry(DATABASE_URL, max_retries=3, timeout=10)
+# Increased timeout to 30s for Neon serverless cold start
+engine = connect_with_retry(DATABASE_URL, max_retries=5, timeout=30)
 
 
 def get_session():

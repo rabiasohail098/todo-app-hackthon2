@@ -1,0 +1,15 @@
+{
+  "type": "record",
+  "name": "TaskReminder",
+  "namespace": "com.todoapp.events",
+  "doc": "Event emitted for task reminders",
+  "fields": [
+    {"name": "eventId", "type": "string", "doc": "Unique event identifier"},
+    {"name": "eventTimestamp", "type": "long", "doc": "Event timestamp in milliseconds"},
+    {"name": "userId", "type": "string", "doc": "User to remind"},
+    {"name": "taskId", "type": "string", "doc": "Task identifier"},
+    {"name": "title", "type": "string", "doc": "Task title"},
+    {"name": "dueDate", "type": "long", "doc": "Task due date timestamp"},
+    {"name": "reminderType", "type": {"type": "enum", "name": "ReminderType", "symbols": ["UPCOMING", "OVERDUE", "CUSTOM"]}, "doc": "Reminder type"}
+  ]
+}
