@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  serverExternalPackages: ["better-auth"],
+  serverExternalPackages: ["better-auth", "pg"],
   // Empty turbopack config to silence the webpack/turbopack warning
   // Turbopack is the default in Next.js 16
   turbopack: {},
