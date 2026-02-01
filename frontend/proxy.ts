@@ -7,7 +7,7 @@ import type { NextRequest } from "next/server";
  * Protects /dashboard route by checking for authentication.
  * Redirects unauthenticated users to sign-in page.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Check if accessing protected dashboard route
