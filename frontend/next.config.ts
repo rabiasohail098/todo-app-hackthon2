@@ -3,8 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   serverExternalPackages: ["better-auth", "pg"],
-  // Turbopack config
-  turbopack: {},
+  output: "standalone",
   webpack: (config, { isServer }) => {
     if (!isServer) {
       // For client-side builds, provide empty implementations for Node.js-specific modules
