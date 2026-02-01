@@ -3,9 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   serverExternalPackages: ["better-auth", "pg"],
-  // Disable Turbopack for builds due to module resolution issues
-  // https://github.com/vercel/next.js/issues/86458
-  turbopack: false,
+  // Turbopack config
+  turbopack: {},
   webpack: (config, { isServer }) => {
     if (!isServer) {
       // For client-side builds, provide empty implementations for Node.js-specific modules
