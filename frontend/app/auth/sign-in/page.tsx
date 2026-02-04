@@ -62,10 +62,8 @@ export default function SignInPage() {
 
       // HuggingFace proxy may strip Set-Cookie headers
       // Try to extract token from various response structures
-      const token = result?.data?.token ||
-                    result?.data?.session?.token ||
-                    result?.data?.session?.id ||
-                    result?.token;
+      const data = result?.data as Record<string, unknown> | undefined;
+      const token = data?.token as string | undefined;
 
       if (token) {
         // Set cookie with appropriate attributes for HuggingFace
