@@ -1,3 +1,14 @@
+---
+title: Todo App
+emoji: ✅
+colorFrom: purple
+colorTo: pink
+sdk: docker
+pinned: false
+license: mit
+short_description: AI-powered task management with chat interface
+---
+
 # Todo Application
 
 A full-stack task management web application with user authentication and multi-tenant support.
