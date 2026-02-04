@@ -46,6 +46,8 @@ export default function SignInPage() {
     setIsLoading(true);
 
     try {
+      console.log("Starting sign-in process...");
+
       // Call Better Auth sign-in
       const result = await signIn.email({
         email: formData.email,
@@ -56,7 +58,7 @@ export default function SignInPage() {
 
       if (result?.error) {
         console.error("Sign-in error:", result.error);
-        setErrors([{ field: "general", message: t.invalidCredentials }]);
+        setErrors([{ field: "general", message: result.error.message || t.invalidCredentials }]);
         return;
       }
 
@@ -75,6 +77,8 @@ export default function SignInPage() {
         console.log("No token found in response, relying on server-side cookie");
       }
 
+      console.log("Sign-in successful, redirecting to dashboard...");
+
       // Small delay to ensure cookie is set before redirect
       await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -82,10 +86,12 @@ export default function SignInPage() {
       window.location.href = "/dashboard";
     } catch (error: any) {
       console.error("Sign-in exception:", error);
+      // Show the actual error message
+      const errorMessage = error?.message || error?.toString() || t.invalidCredentials;
       setErrors([
         {
           field: "general",
-          message: t.invalidCredentials,
+          message: errorMessage,
         },
       ]);
     } finally {
