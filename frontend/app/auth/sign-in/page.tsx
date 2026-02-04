@@ -204,6 +204,7 @@ export default function SignInPage() {
             <button
               type="submit"
               disabled={isLoading}
+              onClick={() => console.log("Button clicked!")}
               className="group w-full relative px-8 py-5 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white font-bold rounded-2xl shadow-2xl transition-all transform hover:scale-105 hover:shadow-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden text-fade-up text-fade-up-delay-2"
             >
               <span className="relative z-10 flex items-center justify-center gap-2">

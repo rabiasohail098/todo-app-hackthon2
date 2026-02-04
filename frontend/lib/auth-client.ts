@@ -5,18 +5,8 @@
 
 import { createAuthClient } from "better-auth/react";
 
-// Get the base URL for auth - defaults to current origin
-const getBaseURL = () => {
-  if (typeof window !== 'undefined') {
-    return window.location.origin;
-  }
-  return process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-};
-
-// Create a client-only auth instance with explicit baseURL
-export const authClient = createAuthClient({
-  baseURL: getBaseURL(),
-});
+// Create auth client without baseURL - it will use relative URLs which work with same-origin
+export const authClient = createAuthClient();
 
 export const {
   signIn,
