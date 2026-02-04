@@ -7,10 +7,21 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install ALL dependencies (including devDependencies for build)
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY . .
+
+# Build-time environment variables (needed for Next.js static generation)
+ARG BETTER_AUTH_SECRET=build-placeholder
+ARG NEXT_PUBLIC_API_URL=https://rabiasohail098-todo-app-backend.hf.space
+ARG NEXT_PUBLIC_BASE_URL=https://rabiasohail098-todo-app-frontend.hf.space
+ARG DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder
+
+ENV BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
+ENV DATABASE_URL=${DATABASE_URL}
 
 # Build Next.js app (standalone mode)
 RUN npm run build

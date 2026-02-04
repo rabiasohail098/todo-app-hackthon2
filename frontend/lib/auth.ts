@@ -50,14 +50,18 @@ export const auth = betterAuth({
   // Base URL for the application
   baseURL: process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000",
 
-  // Trusted origins
+  // Trusted origins - includes HuggingFace Spaces
   trustedOrigins: [
     "http://localhost:3000",
     "http://localhost:3001",
     "http://localhost:3002",
     "http://localhost:3003",
     "https://rabiasohail098-todo-app-frontend.hf.space",
+    "https://rabiasohail098-todo-app.hf.space",
+    // Dynamic origins from env
     process.env.NEXT_PUBLIC_BASE_URL || "",
+    // Additional trusted origins (comma-separated)
+    ...(process.env.TRUSTED_ORIGINS?.split(",").map(o => o.trim()) || []),
   ].filter(Boolean),
 
   // Email/password authentication

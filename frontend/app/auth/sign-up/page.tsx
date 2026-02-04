@@ -90,14 +90,19 @@ export default function SignUpPage() {
 
     try {
       // Call Better Auth sign-up
-      await signUp.email({
+      const result = await signUp.email({
         email: formData.email,
         password: formData.password,
         name: formData.email.split("@")[0], // Use email prefix as name
       });
 
-      // Redirect to dashboard on success
-      router.push("/dashboard");
+      // HuggingFace proxy strips Set-Cookie headers, set cookie manually
+      if (result?.data?.token) {
+        document.cookie = `better-auth.session_token=${result.data.token}; path=/; max-age=86400; SameSite=Lax`;
+      }
+
+      // Full page reload to ensure cookie is picked up by middleware
+      window.location.href = "/dashboard";
     } catch (error: any) {
       // Handle sign-up errors
       const errorMessage =

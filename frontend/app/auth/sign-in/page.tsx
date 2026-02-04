@@ -47,16 +47,24 @@ export default function SignInPage() {
 
     try {
       // Call Better Auth sign-in
-      await signIn.email({
+      const result = await signIn.email({
         email: formData.email,
         password: formData.password,
       });
 
-      // Redirect to dashboard on success
-      router.push("/dashboard");
+      if (result?.error) {
+        setErrors([{ field: "general", message: t.invalidCredentials }]);
+        return;
+      }
+
+      // HuggingFace proxy strips Set-Cookie headers, set cookie manually
+      if (result?.data?.token) {
+        document.cookie = `better-auth.session_token=${result.data.token}; path=/; max-age=86400; SameSite=Lax`;
+      }
+
+      // Full page reload to ensure cookie is picked up by middleware
+      window.location.href = "/dashboard";
     } catch (error: any) {
-      // Handle sign-in errors with generic message for security
-      // Don't reveal whether email exists or password is wrong
       setErrors([
         {
           field: "general",
