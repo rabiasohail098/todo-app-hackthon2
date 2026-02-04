@@ -29,6 +29,40 @@ export default function DashboardPage() {
   const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
+
+  // Client-side auth check for HuggingFace (cookies may not work)
+  useEffect(() => {
+    const checkAuth = () => {
+      // Check localStorage for session (HuggingFace fallback)
+      const storedSession = localStorage.getItem("better-auth-session");
+      if (storedSession) {
+        try {
+          const session = JSON.parse(storedSession);
+          // Check if session is less than 24 hours old
+          if (session.timestamp && Date.now() - session.timestamp < 24 * 60 * 60 * 1000) {
+            setIsAuthChecked(true);
+            return;
+          }
+        } catch (e) {
+          console.error("Failed to parse session:", e);
+        }
+      }
+
+      // Check for cookie as well
+      const hasCookie = document.cookie.includes("better-auth");
+      if (hasCookie) {
+        setIsAuthChecked(true);
+        return;
+      }
+
+      // No valid session found, redirect to sign-in
+      console.log("No valid session found, redirecting to sign-in");
+      router.push("/auth/sign-in");
+    };
+
+    checkAuth();
+  }, [router]);
   const [error, setError] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
@@ -285,6 +319,18 @@ export default function DashboardPage() {
       setError(error.message || "Failed to log out");
     }
   };
+
+  // Show loading while checking auth
+  if (!isAuthChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p className="text-purple-600 dark:text-purple-400 font-medium">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen transition-colors duration-300">

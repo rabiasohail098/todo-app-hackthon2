@@ -104,9 +104,20 @@ export default function SignUpPage() {
       }
 
       // HuggingFace proxy may strip Set-Cookie headers
-      // Try to extract token from various response structures
+      // Store session info in localStorage as backup
       const data = result?.data as Record<string, unknown> | undefined;
       const token = data?.token as string | undefined;
+      const user = data?.user as Record<string, unknown> | undefined;
+
+      // Store in localStorage for middleware fallback
+      if (user) {
+        localStorage.setItem("better-auth-session", JSON.stringify({
+          user,
+          token,
+          timestamp: Date.now()
+        }));
+        console.log("Session stored in localStorage");
+      }
 
       if (token) {
         // Set cookie with appropriate attributes for HuggingFace
@@ -118,10 +129,10 @@ export default function SignUpPage() {
         console.log("No token found in response, relying on server-side cookie");
       }
 
-      // Small delay to ensure cookie is set before redirect
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Small delay to ensure storage is set before redirect
+      await new Promise(resolve => setTimeout(resolve, 200));
 
-      // Full page reload to ensure cookie is picked up by middleware
+      // Full page reload to ensure session is picked up
       window.location.href = "/dashboard";
     } catch (error: any) {
       // Handle sign-up errors
