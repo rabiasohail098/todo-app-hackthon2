@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getUserId, createBackendToken } from "@/lib/api-auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -8,18 +9,20 @@ export async function DELETE(
 ) {
   try {
     const { id, attachmentId } = await params;
-    const token = request.cookies.get("token")?.value;
 
-    if (!token) {
+    const userId = await getUserId();
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const backendToken = await createBackendToken(userId);
 
     const response = await fetch(
       `${API_URL}/api/tasks/${id}/attachments/${attachmentId}`,
       {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${backendToken}`,
         },
       }
     );

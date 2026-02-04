@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getUserId, createBackendToken } from "@/lib/api-auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -8,11 +9,13 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const token = request.cookies.get("token")?.value;
 
-    if (!token) {
+    const userId = await getUserId();
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const backendToken = await createBackendToken(userId);
 
     const { searchParams } = new URL(request.url);
     const limit = searchParams.get("limit") || "50";
@@ -21,7 +24,7 @@ export async function GET(
       `${API_URL}/api/tasks/${id}/activity?limit=${limit}`,
       {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${backendToken}`,
         },
       }
     );

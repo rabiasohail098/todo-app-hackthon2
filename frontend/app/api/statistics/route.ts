@@ -3,29 +3,9 @@
  * Forwards statistics requests to the Python FastAPI backend
  */
 
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
-import { SignJWT } from "jose";
+import { getUserId, createBackendToken } from "@/lib/api-auth";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-const JWT_SECRET = process.env.BETTER_AUTH_SECRET;
-
-// Create a JWT token for the backend
-async function createBackendToken(userId: string): Promise<string> {
-  if (!JWT_SECRET) {
-    throw new Error("BETTER_AUTH_SECRET is not set");
-  }
-
-  const secret = new TextEncoder().encode(JWT_SECRET);
-
-  const token = await new SignJWT({ sub: userId })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("24h")
-    .sign(secret);
-
-  return token;
-}
 
 /**
  * GET /api/statistics
@@ -33,18 +13,16 @@ async function createBackendToken(userId: string): Promise<string> {
  */
 export async function GET(req: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const userId = await getUserId();
 
-    if (!session?.user?.id) {
+    if (!userId) {
       return new Response(
         JSON.stringify({ error: "Authentication required" }),
         { status: 401, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    const backendToken = await createBackendToken(session.user.id);
+    const backendToken = await createBackendToken(userId);
 
     // Forward query parameters from request URL
     const url = new URL(req.url);

@@ -4,29 +4,9 @@
  */
 
 import { NextRequest } from "next/server";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
-import { SignJWT } from "jose";
+import { getUserId, createBackendToken } from "@/lib/api-auth";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-const JWT_SECRET = process.env.BETTER_AUTH_SECRET;
-
-// Create a JWT token for the backend
-async function createBackendToken(userId: string): Promise<string> {
-  if (!JWT_SECRET) {
-    throw new Error("BETTER_AUTH_SECRET is not set");
-  }
-
-  const secret = new TextEncoder().encode(JWT_SECRET);
-
-  const token = await new SignJWT({ sub: userId })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("24h")
-    .sign(secret);
-
-  return token;
-}
 
 /**
  * GET /api/conversations/[id]/messages - Get all messages from a conversation
@@ -38,12 +18,9 @@ export async function GET(
   try {
     const { id: conversationId } = await params;
 
-    // Get session from better-auth
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const userId = await getUserId();
 
-    if (!session?.user?.id) {
+    if (!userId) {
       return new Response(
         JSON.stringify({ error: "Authentication required" }),
         { status: 401, headers: { "Content-Type": "application/json" } }
@@ -51,7 +28,7 @@ export async function GET(
     }
 
     // Create JWT token for backend
-    const backendToken = await createBackendToken(session.user.id);
+    const backendToken = await createBackendToken(userId);
 
     // Forward request to backend
     const backendResponse = await fetch(

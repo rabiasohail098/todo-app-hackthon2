@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getUserId, createBackendToken } from "@/lib/api-auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -8,17 +9,19 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const token = request.cookies.get("token")?.value;
 
-    if (!token) {
+    const userId = await getUserId();
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const backendToken = await createBackendToken(userId);
 
     const response = await fetch(
       `${API_URL}/api/tasks/${id}/attachments`,
       {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${backendToken}`,
         },
       }
     );
@@ -45,11 +48,13 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const token = request.cookies.get("token")?.value;
 
-    if (!token) {
+    const userId = await getUserId();
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const backendToken = await createBackendToken(userId);
 
     const formData = await request.formData();
 
@@ -58,7 +63,7 @@ export async function POST(
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${backendToken}`,
         },
         body: formData,
       }
