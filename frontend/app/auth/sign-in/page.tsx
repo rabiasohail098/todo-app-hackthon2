@@ -52,19 +52,38 @@ export default function SignInPage() {
         password: formData.password,
       });
 
+      console.log("Sign-in result:", JSON.stringify(result, null, 2));
+
       if (result?.error) {
+        console.error("Sign-in error:", result.error);
         setErrors([{ field: "general", message: t.invalidCredentials }]);
         return;
       }
 
-      // HuggingFace proxy strips Set-Cookie headers, set cookie manually
-      if (result?.data?.token) {
-        document.cookie = `better-auth.session_token=${result.data.token}; path=/; max-age=86400; SameSite=Lax`;
+      // HuggingFace proxy may strip Set-Cookie headers
+      // Try to extract token from various response structures
+      const token = result?.data?.token ||
+                    result?.data?.session?.token ||
+                    result?.data?.session?.id ||
+                    result?.token;
+
+      if (token) {
+        // Set cookie with appropriate attributes for HuggingFace
+        const isSecure = window.location.protocol === 'https:';
+        const cookieValue = `better-auth.session_token=${token}; path=/; max-age=86400; SameSite=Lax${isSecure ? '; Secure' : ''}`;
+        document.cookie = cookieValue;
+        console.log("Cookie set manually:", cookieValue);
+      } else {
+        console.log("No token found in response, relying on server-side cookie");
       }
+
+      // Small delay to ensure cookie is set before redirect
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Full page reload to ensure cookie is picked up by middleware
       window.location.href = "/dashboard";
     } catch (error: any) {
+      console.error("Sign-in exception:", error);
       setErrors([
         {
           field: "general",

@@ -20,6 +20,10 @@ const pool = DATABASE_URL ? new Pool({
   connectionString: DATABASE_URL,
 }) : undefined;
 
+// Determine if we're in production (HTTPS)
+const isProduction = process.env.NODE_ENV === 'production' ||
+                     process.env.NEXT_PUBLIC_BASE_URL?.startsWith('https://');
+
 /**
  * Better Auth instance configured for the Todo App.
  *
@@ -41,6 +45,19 @@ export const auth = betterAuth({
     cookieCache: {
       enabled: true,
       maxAge: 60 * 60 * 24, // 24 hours
+    },
+  },
+
+  // Advanced settings for cookie configuration
+  advanced: {
+    // Cookie configuration for HuggingFace Spaces compatibility
+    cookiePrefix: "better-auth",
+    useSecureCookies: isProduction,
+    defaultCookieAttributes: {
+      httpOnly: true,
+      sameSite: "lax" as const,
+      secure: isProduction,
+      path: "/",
     },
   },
 
