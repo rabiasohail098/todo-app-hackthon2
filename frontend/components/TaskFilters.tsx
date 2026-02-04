@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import CategoryBadge from "./CategoryBadge";
 import PriorityIndicator, { Priority } from "./PriorityIndicator";
+import { authFetch } from "@/lib/api";
 
 interface Category {
   id: number;
@@ -68,8 +69,8 @@ const TaskFilters: React.FC<TaskFiltersProps> = ({
     try {
       // Fetch both categories and tags in parallel
       const [categoriesRes, tagsRes] = await Promise.all([
-        fetch("/api/categories"),
-        fetch("/api/tags")
+        authFetch("/api/categories"),
+        authFetch("/api/tags")
       ]);
 
       // Handle categories response

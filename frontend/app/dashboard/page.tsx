@@ -8,7 +8,7 @@ import TaskList from "@/components/TaskList";
 import SearchBar from "@/components/SearchBar";
 import TaskFilters, { FilterState } from "@/components/TaskFilters";
 import TaskSkeleton from "@/components/TaskSkeleton";
-import { apiClient } from "@/lib/api";
+import { apiClient, authFetch } from "@/lib/api";
 import { signOut } from "@/lib/auth-client";
 import { LogOut, Settings, MessageSquare, BarChart3 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
@@ -143,7 +143,7 @@ export default function DashboardPage() {
 
       // Fetch from our Next.js API route
       const url = `/api/tasks${params.toString() ? `?${params.toString()}` : ""}`;
-      const response = await fetch(url);
+      const response = await authFetch(url);
       if (!response.ok) {
         throw new Error("Failed to fetch tasks");
       }
@@ -197,7 +197,7 @@ export default function DashboardPage() {
     );
 
     try {
-      const response = await fetch(`/api/tasks/${taskId}`, {
+      const response = await authFetch(`/api/tasks/${taskId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_completed: isCompleted }),
@@ -225,7 +225,7 @@ export default function DashboardPage() {
     );
 
     try {
-      const response = await fetch(`/api/tasks/${taskId}`, {
+      const response = await authFetch(`/api/tasks/${taskId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
@@ -249,7 +249,7 @@ export default function DashboardPage() {
     setTasks((prev) => prev.filter((task) => task.id !== taskId));
 
     try {
-      const response = await fetch(`/api/tasks/${taskId}`, {
+      const response = await authFetch(`/api/tasks/${taskId}`, {
         method: "DELETE",
       });
 

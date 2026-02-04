@@ -10,6 +10,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import LanguageToggle from "@/components/LanguageToggle";
 import BackgroundToggle from "@/components/BackgroundToggle";
 import CategoryBadge from "@/components/CategoryBadge";
+import { authFetch } from "@/lib/api";
 
 interface Category {
   id: number;
@@ -62,7 +63,7 @@ export default function CategoriesPage() {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/categories");
+      const response = await authFetch("/api/categories");
       if (!response.ok) throw new Error("Failed to fetch categories");
       const data = await response.json();
       setCategories(data);
@@ -86,7 +87,7 @@ export default function CategoriesPage() {
         : "/api/categories";
       const method = editingCategory ? "PUT" : "POST";
 
-      const response = await fetch(url, {
+      const response = await authFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -111,7 +112,7 @@ export default function CategoriesPage() {
     )) return;
 
     try {
-      const response = await fetch(`/api/categories/${id}`, { method: "DELETE" });
+      const response = await authFetch(`/api/categories/${id}`, { method: "DELETE" });
       if (!response.ok) throw new Error("Failed to delete category");
       fetchCategories();
     } catch (err) {

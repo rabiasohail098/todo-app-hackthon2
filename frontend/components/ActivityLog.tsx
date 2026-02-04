@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Clock, Loader } from "lucide-react";
+import { authFetch } from "@/lib/api";
 
 interface Activity {
   id: number;
@@ -77,7 +78,7 @@ export default function ActivityLog({ taskId }: ActivityLogProps) {
     setError(null);
 
     try {
-      const response = await fetch(`/api/tasks/${taskId}/activity`);
+      const response = await authFetch(`/api/tasks/${taskId}/activity`);
 
       if (!response.ok) {
         throw new Error("Failed to load activity history");

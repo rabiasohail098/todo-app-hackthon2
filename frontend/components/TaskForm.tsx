@@ -8,6 +8,7 @@ import CategoryBadge from "./CategoryBadge";
 import PriorityIndicator, { Priority } from "./PriorityIndicator";
 import TagInput from "./TagInput";
 import RecurrenceSelector from "./RecurrenceSelector";
+import { authFetch } from "@/lib/api";
 
 type RecurrencePattern = "daily" | "weekly" | "monthly" | null;
 
@@ -65,7 +66,7 @@ export default function TaskForm({ onTaskAdded }: TaskFormProps) {
     setFetchError(null);
 
     try {
-      const response = await fetch("/api/categories");
+      const response = await authFetch("/api/categories");
 
       if (!response.ok) {
         // Map HTTP errors to user-friendly messages
@@ -140,7 +141,7 @@ export default function TaskForm({ onTaskAdded }: TaskFormProps) {
 
     try {
       // Call the API to create the task
-      const response = await fetch("/api/tasks", {
+      const response = await authFetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

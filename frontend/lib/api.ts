@@ -35,19 +35,25 @@ export class ApiError extends Error {
 }
 
 /**
- * Get JWT token from Better Auth session.
+ * Get user ID from localStorage session (HuggingFace fallback).
  *
- * @returns JWT token string or null if not authenticated
+ * @returns User ID string or null if not authenticated
  */
-async function getAuthToken(): Promise<string | null> {
-  // TODO: Implement Better Auth session retrieval
-  // This will be implemented when Better Auth is configured
-  // For now, return null (will cause 401 on protected endpoints)
+function getUserIdFromStorage(): string | null {
+  if (typeof window === 'undefined') return null;
 
-  // Example implementation:
-  // const session = await auth.getSession();
-  // return session?.access_token || null;
-
+  try {
+    const storedSession = localStorage.getItem("better-auth-session");
+    if (storedSession) {
+      const session = JSON.parse(storedSession);
+      // Check if session is valid (less than 24 hours old)
+      if (session.timestamp && Date.now() - session.timestamp < 24 * 60 * 60 * 1000) {
+        return session.user?.id || null;
+      }
+    }
+  } catch (e) {
+    console.error("Failed to get user ID from storage:", e);
+  }
   return null;
 }
 
@@ -92,11 +98,11 @@ export async function api<T = any>(
     ...(fetchOptions.headers || {}),
   } as Record<string, string>;
 
-  // Attach JWT token if not skipping auth
+  // Attach user ID from localStorage (HuggingFace fallback)
   if (!skipAuth) {
-    const token = await getAuthToken();
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
+    const userId = getUserIdFromStorage();
+    if (userId) {
+      headers["X-User-Id"] = userId;
     }
   }
 
@@ -171,5 +177,30 @@ export const apiClient = {
   delete: <T = any>(endpoint: string, options?: ApiRequestOptions) =>
     api<T>(endpoint, { ...options, method: "DELETE" }),
 };
+
+/**
+ * Authenticated fetch wrapper for Next.js API routes.
+ *
+ * On HuggingFace Spaces, cookies may be stripped by the reverse proxy.
+ * This wrapper attaches the X-User-Id header from localStorage so
+ * server-side API routes can identify the user via the header fallback.
+ */
+export function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string> || {}),
+  };
+
+  // Attach user ID from localStorage for HuggingFace fallback
+  const userId = getUserIdFromStorage();
+  if (userId) {
+    headers["X-User-Id"] = userId;
+  }
+
+  return fetch(url, {
+    ...options,
+    headers,
+    credentials: "include",
+  });
+}
 
 export default api;

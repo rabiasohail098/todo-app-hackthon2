@@ -7,6 +7,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import LanguageDropdown from "@/components/LanguageDropdown";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { signOut } from "@/lib/auth-client";
+import { authFetch } from "@/lib/api";
 import { LogOut } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useApp } from "@/context/AppContext";
@@ -52,7 +53,7 @@ export default function ChatPage() {
   const loadConversations = async () => {
     try {
       console.log("Loading conversations...");
-      const response = await fetch("/api/conversations");
+      const response = await authFetch("/api/conversations");
       console.log("Response status:", response.status);
       if (response.ok) {
         const data = await response.json();
@@ -70,7 +71,7 @@ export default function ChatPage() {
   const loadConversation = async (convId: string) => {
     try {
       console.log("Loading conversation:", convId);
-      const response = await fetch(`/api/conversations/${convId}/messages`);
+      const response = await authFetch(`/api/conversations/${convId}/messages`);
       console.log("Load conversation response:", response.status);
       if (response.ok) {
         const data = await response.json();
@@ -89,7 +90,7 @@ export default function ChatPage() {
   const deleteConversation = async (convId: string) => {
     try {
       console.log("Deleting conversation:", convId);
-      const response = await fetch(`/api/conversations/${convId}`, {
+      const response = await authFetch(`/api/conversations/${convId}`, {
         method: "DELETE",
       });
 
@@ -141,7 +142,7 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, tempUserMsg]);
 
     try {
-      const response = await fetch("/api/chat", {
+      const response = await authFetch("/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

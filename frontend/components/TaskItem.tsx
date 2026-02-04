@@ -7,6 +7,7 @@ import { useApp } from "@/context/AppContext";
 import { useTranslation } from "@/hooks/useTranslation";
 import { highlightText } from "@/lib/highlight";
 import SubtaskList from "./SubtaskList";
+import { authFetch } from "@/lib/api";
 
 interface Subtask {
   id: number;
@@ -73,7 +74,7 @@ export default function TaskItem({
   const fetchSubtasks = async () => {
     setIsLoadingSubtasks(true);
     try {
-      const response = await fetch(`/api/tasks/${task.id}/subtasks`);
+      const response = await authFetch(`/api/tasks/${task.id}/subtasks`);
       if (!response.ok) {
         throw new Error("Failed to fetch subtasks");
       }
@@ -98,7 +99,7 @@ export default function TaskItem({
     );
 
     try {
-      const response = await fetch(`/api/subtasks/${subtaskId}`, {
+      const response = await authFetch(`/api/subtasks/${subtaskId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_completed: isCompleted }),
@@ -122,7 +123,7 @@ export default function TaskItem({
     setSubtasks((prev) => prev.filter((st) => st.id !== subtaskId));
 
     try {
-      const response = await fetch(`/api/subtasks/${subtaskId}`, {
+      const response = await authFetch(`/api/subtasks/${subtaskId}`, {
         method: "DELETE",
       });
 
@@ -141,7 +142,7 @@ export default function TaskItem({
    */
   const handleSubtaskAdd = async (title: string) => {
     try {
-      const response = await fetch(`/api/tasks/${task.id}/subtasks`, {
+      const response = await authFetch(`/api/tasks/${task.id}/subtasks`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

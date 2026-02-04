@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, TrendingUp, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import { useApp } from "@/context/AppContext";
+import { authFetch } from "@/lib/api";
 import StatisticsChart from "@/components/StatisticsChart";
 
 interface OverallStats {
@@ -82,10 +83,10 @@ export default function StatisticsPage() {
 
       // Fetch all statistics in parallel
       const [overallRes, dailyRes, categoryRes, priorityRes] = await Promise.all([
-        fetch(`/api/statistics?start_date=${startDateStr}&end_date=${endDateStr}`),
-        fetch(`/api/statistics/daily?start_date=${startDateStr}&end_date=${endDateStr}`),
-        fetch(`/api/statistics/categories`),
-        fetch(`/api/statistics/priorities`),
+        authFetch(`/api/statistics?start_date=${startDateStr}&end_date=${endDateStr}`),
+        authFetch(`/api/statistics/daily?start_date=${startDateStr}&end_date=${endDateStr}`),
+        authFetch(`/api/statistics/categories`),
+        authFetch(`/api/statistics/priorities`),
       ]);
 
       if (!overallRes.ok || !dailyRes.ok || !categoryRes.ok || !priorityRes.ok) {

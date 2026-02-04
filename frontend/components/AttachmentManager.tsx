@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Paperclip, Upload, X, FileText, Image as ImageIcon, Download, Trash2, Loader } from "lucide-react";
+import { authFetch } from "@/lib/api";
 
 interface Attachment {
   id: number;
@@ -62,7 +63,7 @@ export default function AttachmentManager({ taskId }: AttachmentManagerProps) {
   const fetchAttachments = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/tasks/${taskId}/attachments`);
+      const response = await authFetch(`/api/tasks/${taskId}/attachments`);
       if (response.ok) {
         const data = await response.json();
         setAttachments(data);
@@ -101,7 +102,7 @@ export default function AttachmentManager({ taskId }: AttachmentManagerProps) {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch(`/api/tasks/${taskId}/attachments`, {
+      const response = await authFetch(`/api/tasks/${taskId}/attachments`, {
         method: "POST",
         body: formData,
       });
@@ -129,7 +130,7 @@ export default function AttachmentManager({ taskId }: AttachmentManagerProps) {
     if (!confirm("Are you sure you want to delete this attachment?")) return;
 
     try {
-      const response = await fetch(`/api/tasks/${taskId}/attachments/${attachmentId}`, {
+      const response = await authFetch(`/api/tasks/${taskId}/attachments/${attachmentId}`, {
         method: "DELETE",
       });
 

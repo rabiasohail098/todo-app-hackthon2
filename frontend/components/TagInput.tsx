@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { X, Hash } from "lucide-react";
 import { useApp } from "@/context/AppContext";
+import { authFetch } from "@/lib/api";
 
 interface Tag {
   id?: number;
@@ -64,7 +65,7 @@ export default function TagInput({
     setError(null);
 
     try {
-      const response = await fetch("/api/tags");
+      const response = await authFetch("/api/tags");
 
       if (!response.ok) {
         // Map HTTP errors to user-friendly messages
