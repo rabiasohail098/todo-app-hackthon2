@@ -10,10 +10,18 @@ import type { NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Check if accessing protected dashboard route
-  if (pathname.startsWith("/dashboard")) {
+  // Check if accessing protected dashboard or chat routes
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/chat") || pathname.startsWith("/categories")) {
     // Check for authentication token in cookies
-    const authToken = request.cookies.get("better-auth.session_token");
+    // Better Auth uses different cookie names depending on configuration
+    const authToken = request.cookies.get("better-auth.session_token") ||
+                      request.cookies.get("better-auth_session_token") ||
+                      request.cookies.get("__Secure-better-auth.session_token");
+
+    // Debug logging (will appear in server logs)
+    console.log("Middleware: Checking auth for", pathname);
+    console.log("Middleware: Cookies found:", [...request.cookies.getAll()].map(c => c.name));
+    console.log("Middleware: Auth token found:", !!authToken);
 
     // If no auth token, redirect to sign-in
     if (!authToken) {
