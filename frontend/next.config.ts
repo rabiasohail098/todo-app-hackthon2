@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
   /* config options here */
   serverExternalPackages: ["better-auth", "pg"],
   output: "standalone",
+  typedRoutes: true,
+  experimental: {
+    webpackBuildWorker: true,
+  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       // For client-side builds, provide empty implementations for Node.js-specific modules

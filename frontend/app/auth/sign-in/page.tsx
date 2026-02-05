@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signIn } from "@/lib/auth-client";
+import { signIn, authClient } from "@/lib/auth-client";
 import { FormError } from "@/types";
 import { LogIn, Mail, Lock, Sparkles, Sun, Moon, Languages } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -90,10 +90,10 @@ export default function SignInPage() {
         // Try to get session from better-auth client as fallback
         try {
           const { data: session } = await authClient.getSession();
-          if (session?.user && session?.accessToken) {
+          if (session?.user && session?.session) {
             const sessionData = {
               user: session.user,
-              token: session.accessToken,
+              token: session.session.token || session.session.id,
               timestamp: Date.now()
             };
 

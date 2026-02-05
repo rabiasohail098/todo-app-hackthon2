@@ -197,14 +197,14 @@ export default function ChatPage() {
       console.error("Error sending message:", error);
 
       // Determine error type and provide appropriate message
-      let errorMessage = t.sorryError;
+      let errorMessage: string = t.sorryError;
       if (error instanceof Error) {
         if (error.message.includes("fetch") || error.message.includes("network")) {
-          errorMessage = "Unable to connect to the server. Please check your internet connection.";
+          errorMessage = t.noInternetConnection;
         } else if (error.message.includes("500") || error.message.includes("502") || error.message.includes("503")) {
-          errorMessage = "The server is temporarily unavailable. Please try again later.";
+          errorMessage = t.serverUnavailable;
         } else if (error.message.includes("401")) {
-          errorMessage = "Authentication expired. Please sign in again.";
+          errorMessage = t.authExpired;
           // Redirect to sign-in after a delay
           setTimeout(() => {
             router.push("/auth/sign-in");
