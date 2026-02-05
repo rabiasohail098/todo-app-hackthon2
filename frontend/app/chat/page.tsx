@@ -53,25 +53,32 @@ export default function ChatPage() {
   const loadConversations = async () => {
     try {
       console.log("Loading conversations...");
-      const response = await authFetch("/api/conversations");
+      const response = await authFetch("/api/chat/conversations");
       console.log("Response status:", response.status);
       if (response.ok) {
         const data = await response.json();
         console.log("Conversations data:", data);
         console.log("Conversations array:", data.conversations);
         setConversations(data.conversations || []);
+      } else if (response.status === 401) {
+        // Unauthorized - redirect to sign-in
+        console.log("Unauthorized access, redirecting to sign-in");
+        router.push("/auth/sign-in");
       } else {
         console.error("Failed to load conversations:", response.status);
+        // Show error message to user
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Error details:", errorData);
       }
     } catch (error) {
-      console.error("Error loading conversations:", error);
+      console.error("Network error loading conversations:", error);
     }
   };
 
   const loadConversation = async (convId: string) => {
     try {
       console.log("Loading conversation:", convId);
-      const response = await authFetch(`/api/conversations/${convId}/messages`);
+      const response = await authFetch(`/api/chat/conversations/${convId}/messages`);
       console.log("Load conversation response:", response.status);
       if (response.ok) {
         const data = await response.json();
@@ -90,7 +97,7 @@ export default function ChatPage() {
   const deleteConversation = async (convId: string) => {
     try {
       console.log("Deleting conversation:", convId);
-      const response = await authFetch(`/api/conversations/${convId}`, {
+      const response = await authFetch(`/api/chat/conversations/${convId}`, {
         method: "DELETE",
       });
 
@@ -142,7 +149,7 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, tempUserMsg]);
 
     try {
-      const response = await authFetch("/api/chat", {
+      const response = await authFetch("/api/chat/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -155,7 +162,18 @@ export default function ChatPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        if (response.status === 401) {
+          // Unauthorized - redirect to sign-in
+          console.log("Unauthorized access, redirecting to sign-in");
+          router.push("/auth/sign-in");
+          return;
+        } else if (response.status === 500) {
+          // Server error - likely backend issue
+          throw new Error("Server is temporarily unavailable. Please try again later.");
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
       }
 
       const data = await response.json();
@@ -177,11 +195,30 @@ export default function ChatPage() {
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (error) {
       console.error("Error sending message:", error);
+
+      // Determine error type and provide appropriate message
+      let errorMessage = t.sorryError;
+      if (error instanceof Error) {
+        if (error.message.includes("fetch") || error.message.includes("network")) {
+          errorMessage = "Unable to connect to the server. Please check your internet connection.";
+        } else if (error.message.includes("500") || error.message.includes("502") || error.message.includes("503")) {
+          errorMessage = "The server is temporarily unavailable. Please try again later.";
+        } else if (error.message.includes("401")) {
+          errorMessage = "Authentication expired. Please sign in again.";
+          // Redirect to sign-in after a delay
+          setTimeout(() => {
+            router.push("/auth/sign-in");
+          }, 2000);
+        } else {
+          errorMessage = error.message || t.sorryError;
+        }
+      }
+
       // Add error message
       const errorMsg: Message = {
         id: `error-${Date.now()}`,
         role: "assistant",
-        content: t.sorryError,
+        content: errorMessage,
         created_at: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorMsg]);
@@ -457,6 +494,13 @@ export default function ChatPage() {
                           <span className="font-medium text-[11px]">{t.showCompletedExample}</span>
                         </div>
                       </div>
+
+                      <div className="mt-2 grid grid-cols-1 gap-1.5 text-xs text-purple-700 dark:text-purple-300">
+                        <div className="glass px-2 py-1.5 rounded-lg hover:glass-strong transition-all">
+                          <span className="text-base mr-1">✍️</span>
+                          <span className="font-medium text-[11px]">{language === 'ur' ? 'Auto description لکھیں' : 'Auto-generate description'}</span>
+                        </div>
+                      </div>
                     </div>
 
                     <button
@@ -567,6 +611,17 @@ export default function ChatPage() {
                     type="button"
                   >
                     ⏳ {language === 'ur' ? 'نامکمل' : 'Incomplete'}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setInputMessage(language === 'ur' ? 'description خود لکھو' : 'Generate description for task: Buy groceries');
+                    }}
+                    className="text-xs px-3 py-1.5 glass hover:glass-strong rounded-lg text-purple-700 dark:text-purple-300 transition-all hover:scale-105 cursor-pointer"
+                    disabled={isLoading}
+                    type="button"
+                  >
+                    ✍️ {language === 'ur' ? 'Auto description' : 'Auto description'}
                   </button>
                 </div>
 

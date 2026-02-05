@@ -2,7 +2,7 @@
 
 from typing import Optional, List, Dict, Any
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import select, delete
 from pydantic import BaseModel, Field
@@ -48,14 +48,16 @@ class ConversationMessagesResponse(BaseModel):
 
 @router.post("/", response_model=ChatResponse)
 async def send_message(
-    request: ChatRequest,
+    request: Request,
+    chat_request: ChatRequest,
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
 ):
     """Send a message to the AI chatbot and get a response.
 
     Args:
-        request: Chat request with message and optional conversation_id
+        request: FastAPI request object (for header access)
+        chat_request: Chat request with message and optional conversation_id
         db: Database session
         current_user: Authenticated user ID from JWT
 
@@ -66,8 +68,8 @@ async def send_message(
 
     print(f"=== CHAT REQUEST ===")
     print(f"User ID: {user_id}")
-    print(f"Message: {request.message[:50]}...")
-    print(f"Language: {request.language}")
+    print(f"Message: {chat_request.message[:50]}...")
+    print(f"Language: {chat_request.language}")
     print(f"===================")
 
     chat_service = ChatService(db)
@@ -75,9 +77,9 @@ async def send_message(
     try:
         # Convert conversation_id to UUID if provided
         conversation_uuid = None
-        if request.conversation_id:
+        if chat_request.conversation_id:
             try:
-                conversation_uuid = UUID(request.conversation_id)
+                conversation_uuid = UUID(chat_request.conversation_id)
             except ValueError:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -87,9 +89,9 @@ async def send_message(
         # Process message (stateless request cycle)
         result = await chat_service.process_message(
             user_id=user_id,
-            message=request.message,
+            message=chat_request.message,
             conversation_id=conversation_uuid,
-            language=request.language
+            language=chat_request.language
         )
 
         return ChatResponse(**result)
@@ -100,14 +102,31 @@ async def send_message(
             detail=str(e)
         )
     except Exception as e:
+        # Log the full error for debugging
+        print(f"Error processing message: {str(e)}")
+        import traceback
+        traceback.print_exc()
+
+        # Provide a user-friendly error message
+        error_msg = str(e)
+        if "OpenRouter" in error_msg or "API" in error_msg:
+            detail_msg = "AI service is temporarily unavailable. Please try again later."
+        elif "database" in error_msg.lower() or "connection" in error_msg.lower():
+            detail_msg = "Database connection error. Please try again later."
+        elif "timeout" in error_msg.lower():
+            detail_msg = "Request timed out. Please try again with a shorter message."
+        else:
+            detail_msg = "An error occurred while processing your message. Please try again."
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error processing message: {str(e)}"
+            detail=detail_msg
         )
 
 
 @router.get("/conversations/{conversation_id}/messages", response_model=ConversationMessagesResponse)
 def get_conversation_messages(
+    request: Request,
     conversation_id: str,
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
@@ -165,6 +184,7 @@ def get_conversation_messages(
 
 @router.get("/conversations")
 def get_user_conversations(
+    request: Request,
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),
 ):
@@ -194,6 +214,7 @@ def get_user_conversations(
 
 @router.delete("/conversations/{conversation_id}")
 def delete_conversation(
+    request: Request,
     conversation_id: str,
     db: Session = Depends(get_db),
     current_user: str = Depends(get_current_user),

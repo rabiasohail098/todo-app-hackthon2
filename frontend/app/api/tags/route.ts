@@ -5,7 +5,9 @@
 
 import { getUserId, createBackendToken } from "@/lib/api-auth";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Use BACKEND_API_URL for server-side API forwarding (internal container communication)
+// Falls back to NEXT_PUBLIC_API_URL for backward compatibility, then localhost
+const BACKEND_URL = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const FETCH_TIMEOUT = 30000; // 30 seconds
 
 // Helper to create fetch with timeout

@@ -5,7 +5,9 @@
 
 import { getUserId, createBackendToken } from "@/lib/api-auth";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Use BACKEND_API_URL for server-side API forwarding (internal container communication)
+// Falls back to NEXT_PUBLIC_API_URL for backward compatibility, then localhost
+const BACKEND_URL = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const FETCH_TIMEOUT = 60000; // 60 seconds for chat (LLM calls can be slow)
 
 // Helper to create fetch with timeout
@@ -45,8 +47,21 @@ export async function POST(req: Request) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Backend error:", response.status, errorText);
+
+      // Try to parse the error response to get a more specific message
+      let errorMessage = "Failed to send message";
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.error || errorJson.detail || "Failed to send message";
+      } catch {
+        // If parsing fails, use the raw error text if it's not empty
+        if (errorText.trim()) {
+          errorMessage = errorText;
+        }
+      }
+
       return new Response(
-        JSON.stringify({ error: "Failed to send message" }),
+        JSON.stringify({ error: errorMessage }),
         { status: response.status, headers: { "Content-Type": "application/json" } }
       );
     }

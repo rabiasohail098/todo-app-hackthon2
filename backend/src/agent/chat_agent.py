@@ -266,7 +266,7 @@ When user wants to create/add a task, ALWAYS start the guided flow:
 
 This will trigger a step-by-step wizard asking about:
 1. Task title (ٹاسک کا عنوان) - required
-2. Description (تفصیل) - optional
+2. Description (تفصیل) - optional (user can ask for auto-generation)
 3. Category (کیٹیگری) - optional
 4. Priority (ترجیح) - optional
 5. Due date (آخری تاریخ) - optional
@@ -278,6 +278,12 @@ Examples triggering guided flow:
 - "ٹاسک شامل کریں" → {{"action": "start_guided_task"}}
 - "نیا کام" → {{"action": "start_guided_task"}}
 - "add task buy milk" → {{"action": "start_guided_task", "initial_title": "buy milk"}}
+- "add task with auto description" → {{"action": "start_guided_task", "auto_description": True}}
+
+For auto-description generation, when user says:
+- "generate description for task" → Generate a description based on the task title
+- "auto description" → Automatically generate a description for the task
+- "write description yourself" → Generate a description for the user
 
 LIST ALL TASKS:
 {{"action": "list_tasks", "filter": "all"}}
@@ -343,7 +349,7 @@ When user wants to create/add a task, ALWAYS start the guided flow:
 
 This will trigger a step-by-step wizard asking about:
 1. Task title (required)
-2. Description (optional)
+2. Description (optional) - user can ask for auto-generation
 3. Category (optional)
 4. Priority (optional)
 5. Due date (optional)
@@ -356,6 +362,12 @@ Examples triggering guided flow:
 - "I want to add a task" → {{"action": "start_guided_task"}}
 - "new task please" → {{"action": "start_guided_task"}}
 - "add task buy milk" → {{"action": "start_guided_task", "initial_title": "buy milk"}}
+- "add task with auto description" → {{"action": "start_guided_task", "auto_description": True}}
+
+For auto-description generation, when user says:
+- "generate description for task" → Generate a description based on the task title
+- "auto description" → Automatically generate a description for the task
+- "write description yourself" → Generate a description for the user
 
 LIST ALL TASKS:
 {{"action": "list_tasks", "filter": "all"}}
@@ -536,10 +548,14 @@ Urdu (only output the translation, nothing else):"""
             r'^(?:add|create|new|make)\s+(?:a\s+)?task\s*$',
             r'^(?:ٹاسک|کام)\s+(?:شامل|بنائیں)\s*$',
             r'^(?:نیا|نئی)\s+(?:ٹاسک|کام)\s*$',
+            r'^(?:add|create|new|make)\s+(?:a\s+)?task\s+with\s+(?:auto|automatic)\s+description\s*$',
+            r'^(?:add|create|new|make)\s+(?:a\s+)?task\s+and\s+(?:generate|auto)\s+description\s*$',
         ]
 
         for pattern in simple_add_patterns:
             if re.match(pattern, msg_lower, re.IGNORECASE):
+                if "auto" in msg_lower or "automatic" in msg_lower or "generate" in msg_lower:
+                    return {"action": "start_guided_task", "auto_description": True}
                 return {"action": "start_guided_task"}
 
         # ===================
@@ -595,6 +611,22 @@ Urdu (only output the translation, nothing else):"""
                 task_id = int(match.group(1))
                 return {"action": "delete_task", "task_id": task_id}
 
+        # Check for direct description generation requests
+        desc_gen_patterns = [
+            r'^(?:generate|create|write|auto)\s+(?:a\s+)?(?:description|desc)\s+(?:for|of)\s+(?:the\s+)?task\s+(.+)$',
+            r'^(?:generate|create|write|auto)\s+(?:description|desc)\s*:\s*(.+)$',
+            r'^(?:generate|create|write|auto)\s+(?:a\s+)?(?:description|desc)\s+(?:for|of)\s+(.+)$',
+            r'^(?:generate|create|write|auto)\s+description\s+(?:yourself|yourself|on\s+your\s+own)$',
+            r'^(?:generate|create|write|auto)\s+(?:a\s+)?(?:description|desc)\s+(?:for|of)\s+(?:this|the)\s+(?:task|title)\s*:\s*(.+)$',
+            r'^(?:generate|create|write|auto)\s+(?:a\s+)?(?:description|desc)\s+(?:for|of)\s+(?:this|the)\s+(?:task|title)$',
+        ]
+
+        for pattern in desc_gen_patterns:
+            match = re.match(pattern, msg_lower, re.IGNORECASE)
+            if match:
+                task_title = match.group(1).strip().strip('"\'')
+                return {"action": "generate_description", "title": task_title}
+
         # No direct intent detected
         return None
 
@@ -622,6 +654,53 @@ Urdu (only output the translation, nothing else):"""
         # Handle guided task creation flow
         if current_state != ConversationState.IDLE:
             return await self._handle_guided_flow(message)
+
+        # Check if user is responding to a description generation prompt
+        msg_lower = message.lower().strip()
+        pending_task = self._get_pending_task()
+        if (pending_task.get("title") and pending_task.get("description") and
+            current_state == ConversationState.IDLE and
+            (msg_lower in ["yes", "ok", "confirm", "add", "yes please", "please add", "ہاں", "ٹھیک ہے", "شامل کریں"])):
+
+            # User wants to add the task with the generated description
+            from ..models.enums import TaskPriority
+            from ..models.task import TaskCreate
+
+            task_data = TaskCreate(
+                title=pending_task.get("title", ""),
+                description=pending_task.get("description") or None,
+                is_completed=False,
+                category_id=pending_task.get("category_id"),
+                priority=TaskPriority.MEDIUM,
+                due_date=None,
+                recurrence_pattern=None,
+                recurrence_interval=1,
+            )
+
+            task = TaskService.create_task(self.session, task_data, self.user_id)
+
+            # Clear pending task
+            self._update_pending_task({})
+
+            # Build success message
+            if self.language == "ur":
+                content = f"✅ ٹاسک کامیابی سے بنایا گیا!\n\n📝 عنوان: {task.title}\n📄 تفصیل: {task.description}\n\n(Task ID: {task.id})"
+            else:
+                content = f"✅ Task created successfully!\n\n📝 Title: {task.title}\n📄 Description: {task.description}\n\n(Task ID: {task.id})"
+
+            return {
+                "type": "task_created",
+                "content": content,
+                "task": {
+                    "id": task.id,
+                    "title": task.title,
+                    "description": task.description,
+                    "is_completed": task.is_completed,
+                    "category_id": task.category_id,
+                    "priority": str(task.priority) if task.priority else "medium",
+                    "due_date": task.due_date.isoformat() if task.due_date else None,
+                },
+            }
 
         # ============================================
         # DIRECT INTENT DETECTION (before calling AI)
@@ -741,17 +820,47 @@ Urdu (only output the translation, nothing else):"""
             msg_lower = message.lower().strip()
 
             # Check if user wants AI to generate description
-            generate_keywords = ["write", "generate", "create", "suggest", "you write", "tum likho", "آپ لکھیں", "خود لکھو"]
+            generate_keywords = ["write", "generate", "create", "suggest", "you write", "tum likho", "آپ لکھیں", "خود لکھو", "auto", "description"]
             should_generate = any(kw in msg_lower for kw in generate_keywords)
 
             if should_generate:
                 # Generate description using AI
                 pending = self._get_pending_task()
                 title = pending.get("title", "")
-                generated_desc = await self._generate_description(title)
-                self._update_pending_task(description=generated_desc)
+                if title:
+                    try:
+                        generated_desc = await self._generate_description(title)
+                        self._update_pending_task(description=generated_desc)
+
+                        if self.language == "ur":
+                            response_content = f"✓ عنوان: {title}\n✓ تفصیل: {generated_desc}\n\n📁 {self._format_category_options()}"
+                        else:
+                            response_content = f"✓ Title: {title}\n✓ Description: {generated_desc}\n\n📁 {self._format_category_options()}"
+
+                        self._set_state(ConversationState.AWAITING_CATEGORY)
+                        return {
+                            "type": "guided_step",
+                            "step": "category",
+                            "content": response_content
+                        }
+                    except Exception as e:
+                        print(f"Error generating description: {e}")
+                        # Fallback to asking for manual description
+                        if self.language == "ur":
+                            return {"type": "guided_step", "content": f"تفصیل لکھنے میں خرابی: {str(e)}\n\nبراہ کرم خود تفصیل لکھیں (یا 'skip' کہیں):"}
+                        return {"type": "guided_step", "content": f"Error generating description: {str(e)}\n\nPlease enter description manually (or say 'skip'):"}
+                else:
+                    # No title available to generate description from
+                    if self.language == "ur":
+                        return {"type": "guided_step", "content": "تفصیل لکھنے کے لیے ٹاسک کا عنوان درکار ہے۔\n\nبراہ کرم تفصیل لکھیں (یا 'skip' کہیں):"}
+                    return {"type": "guided_step", "content": "Need task title to generate description.\n\nPlease enter description (or say 'skip'):"}
             elif not parsed.get("skip"):
                 self._update_pending_task(description=parsed.get("value", ""))
+            else:
+                # User chose to skip description
+                if self.language == "ur":
+                    return {"type": "guided_step", "content": f"✓ عنوان: {self._get_pending_task().get('title', '')}\n\n📁 {self._format_category_options()}"}
+                return {"type": "guided_step", "content": f"✓ Title: {self._get_pending_task().get('title', '')}\n\n📁 {self._format_category_options()}"}
 
             self._set_state(ConversationState.AWAITING_CATEGORY)
             category_options = self._format_category_options()
@@ -1126,23 +1235,63 @@ Urdu (only output the translation, nothing else):"""
             if action == "start_guided_task":
                 # Start the guided task creation wizard
                 initial_title = action_data.get("initial_title", "").strip()
+                auto_description = action_data.get("auto_description", False)
 
                 if initial_title:
                     # User provided initial title, save it and ask for description
                     self._update_pending_task(title=initial_title)
-                    self._set_state(ConversationState.AWAITING_DESCRIPTION)
 
-                    if self.language == "ur":
+                    if auto_description:
+                        # Automatically generate description for this title
+                        try:
+                            generated_desc = await self._generate_description(initial_title)
+                            self._update_pending_task(description=generated_desc)
+
+                            # Move to next step after generating description
+                            self._set_state(ConversationState.AWAITING_CATEGORY)
+
+                            if self.language == "ur":
+                                return {
+                                    "type": "guided_step",
+                                    "step": "category",
+                                    "content": f"🚀 ٹاسک بنانا شروع!\n\n✓ عنوان: {initial_title}\n✓ تفصیل: {generated_desc}\n\n📁 اب کیٹیگری منتخب کریں:"
+                                }
+                            return {
+                                "type": "guided_step",
+                                "step": "category",
+                                "content": f"🚀 Starting task creation!\n\n✓ Title: {initial_title}\n✓ Description: {generated_desc}\n\n📁 Now select a category:"
+                            }
+                        except Exception as e:
+                            print(f"Error generating description: {e}")
+                            # Fall back to asking for manual description
+                            self._set_state(ConversationState.AWAITING_DESCRIPTION)
+
+                            if self.language == "ur":
+                                return {
+                                    "type": "guided_step",
+                                    "step": "description",
+                                    "content": f"🚀 ٹاسک بنانا شروع!\n\n✓ عنوان: {initial_title}\n\nتفصیل لکھنے میں خرابی ہوئی۔ براہ کرم خود تفصیل درج کریں (یا 'skip' کہیں):"
+                                }
+                            return {
+                                "type": "guided_step",
+                                "step": "description",
+                                "content": f"🚀 Starting task creation!\n\n✓ Title: {initial_title}\n\nError generating description. Please enter description manually (or say 'skip'):"
+                            }
+                    else:
+                        # Ask for description manually
+                        self._set_state(ConversationState.AWAITING_DESCRIPTION)
+
+                        if self.language == "ur":
+                            return {
+                                "type": "guided_step",
+                                "step": "description",
+                                "content": f"🚀 ٹاسک بنانا شروع!\n\n✓ عنوان: {initial_title}\n\nاب، تفصیل درج کریں (اختیاری):\n(یا 'skip' کہیں)"
+                            }
                         return {
                             "type": "guided_step",
                             "step": "description",
-                            "content": f"🚀 ٹاسک بنانا شروع!\n\n✓ عنوان: {initial_title}\n\nاب، تفصیل درج کریں (اختیاری):\n(یا 'skip' کہیں)"
+                            "content": f"🚀 Starting task creation!\n\n✓ Title: {initial_title}\n\nNow, enter a description (optional):\n(or say 'skip')"
                         }
-                    return {
-                        "type": "guided_step",
-                        "step": "description",
-                        "content": f"🚀 Starting task creation!\n\n✓ Title: {initial_title}\n\nNow, enter a description (optional):\n(or say 'skip')"
-                    }
                 else:
                     # No initial title, ask for title first
                     self._set_state(ConversationState.AWAITING_TITLE)
@@ -1515,6 +1664,33 @@ Urdu (only output the translation, nothing else):"""
                     "type": "subtask_deleted",
                     "content": f"✓ Deleted subtask ID {subtask_id}",
                 }
+
+            elif action == "generate_description":
+                # Generate a description for a given title
+                title = action_data.get("title", "").strip()
+                if not title:
+                    return {"type": "error", "content": "Task title is required to generate a description."}
+
+                try:
+                    generated_desc = await self._generate_description(title)
+
+                    if self.language == "ur":
+                        content = f"✅ ٹاسک: {title}\n\n📝 تفصیل: {generated_desc}\n\nکیا آپ اس ٹاسک کو شامل کرنا چاہتے ہیں؟ ('yes' یا 'no')"
+                    else:
+                        content = f"✅ Task: {title}\n\n📝 Description: {generated_desc}\n\nWould you like to add this task? ('yes' or 'no')"
+
+                    # Store the generated description for potential task creation
+                    self._update_pending_task(title=title, description=generated_desc)
+
+                    return {
+                        "type": "description_generated",
+                        "content": content,
+                        "title": title,
+                        "description": generated_desc
+                    }
+                except Exception as e:
+                    error_msg = f"Error generating description: {str(e)}"
+                    return {"type": "error", "content": error_msg}
 
             else:
                 return {"type": "error", "content": f"Unknown action: {action}"}

@@ -25,7 +25,7 @@ if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is not set")
 
 
-def connect_with_retry(database_url: str, max_retries: int = 5, timeout: int = 30):
+def connect_with_retry(database_url: str, max_retries: int = 7, timeout: int = 45):
     """
     Create database engine with retry logic and exponential backoff.
 
@@ -37,8 +37,8 @@ def connect_with_retry(database_url: str, max_retries: int = 5, timeout: int = 3
 
     Args:
         database_url: PostgreSQL connection string
-        max_retries: Maximum number of connection attempts (default: 3)
-        timeout: Connection timeout in seconds per attempt (default: 10)
+        max_retries: Maximum number of connection attempts (default: 7 for Neon)
+        timeout: Connection timeout in seconds per attempt (default: 45 for Neon cold starts)
 
     Returns:
         SQLAlchemy Engine: Database engine with active connection
@@ -48,18 +48,24 @@ def connect_with_retry(database_url: str, max_retries: int = 5, timeout: int = 3
     """
     for attempt in range(1, max_retries + 1):
         try:
-            logger.info(f"🔌 Attempting database connection (attempt {attempt}/{max_retries})...")
+            logger.info(f"[C] Attempting database connection (attempt {attempt}/{max_retries})...")
 
-            # Create engine with connection timeout
+            # Create engine with connection timeout optimized for Neon Serverless
             # connect_args={'connect_timeout': timeout} passes timeout to psycopg2
             engine = create_engine(
                 database_url,
-                echo=True,  # Set to False in production
+                echo=False,  # Set to False in production
                 pool_pre_ping=True,  # Verify connection health before use (prevents stale connections)
                 pool_recycle=300,    # Recycle connections every 5 minutes (Neon optimization)
-                pool_size=5,         # Maintain 5 connections in pool
-                max_overflow=10,     # Allow up to 10 overflow connections
-                connect_args={'connect_timeout': timeout}  # 10-second timeout per attempt (FR-013)
+                pool_size=3,         # Reduced pool size for Hugging Face (lower resources)
+                max_overflow=5,      # Reduced overflow for Hugging Face
+                connect_args={
+                    'connect_timeout': timeout,  # Longer timeout for Neon cold starts
+                    'sslmode': 'require',       # Enforce SSL for Neon
+                    'keepalives_idle': 30,      # Keep-alive settings for long-lived connections
+                    'keepalives_interval': 10,
+                    'keepalives_count': 3,
+                }
             )
 
             # Test the connection by executing a simple query
@@ -78,15 +84,18 @@ def connect_with_retry(database_url: str, max_retries: int = 5, timeout: int = 3
                 error_msg = (
                     f"❌ Database connection failed after {max_retries} retries. "
                     f"Check DATABASE_URL in .env file.\n"
+                    f"This is common during Hugging Face cold starts. The database may be warming up.\n"
                     f"Error: {str(e)}"
                 )
                 logger.error(error_msg)
                 raise OperationalError(error_msg, params=None, orig=e)
 
-            # Calculate exponential backoff delay: 2^(attempt-1) = 1s, 2s, 4s (FR-012)
+            # Calculate exponential backoff delay with jitter: 2^(attempt-1) + random(0-1) = 1-2s, 2-3s, 4-5s...
             # Exponential backoff prevents overwhelming the database during temporary outages
-            delay = 2 ** (attempt - 1)
-            logger.info(f"⏳ Retrying in {delay} seconds (exponential backoff)...")
+            base_delay = 2 ** (attempt - 1)
+            import random
+            delay = base_delay + random.uniform(0, 1)  # Add jitter to prevent thundering herd
+            logger.info(f"⏳ Retrying in {delay:.1f} seconds (exponential backoff with jitter)...")
             time.sleep(delay)
 
 

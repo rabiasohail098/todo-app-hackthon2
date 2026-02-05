@@ -1,7 +1,7 @@
 """API routes for task file attachments."""
 
 from typing import List
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Request
 from sqlmodel import Session
 
 from ..deps import get_db, get_current_user
@@ -13,6 +13,7 @@ router = APIRouter(prefix="/api/tasks", tags=["attachments"])
 
 @router.post("/{task_id}/attachments", response_model=AttachmentRead, status_code=201)
 async def upload_attachment(
+    request: Request,
     task_id: int,
     file: UploadFile = File(...),
     current_user: str = Depends(get_current_user),
@@ -45,6 +46,7 @@ async def upload_attachment(
 
 @router.get("/{task_id}/attachments", response_model=List[AttachmentRead])
 def get_task_attachments(
+    request: Request,
     task_id: int,
     current_user: str = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -71,6 +73,7 @@ def get_task_attachments(
 
 @router.delete("/{task_id}/attachments/{attachment_id}", status_code=204)
 def delete_attachment(
+    request: Request,
     task_id: int,
     attachment_id: int,
     current_user: str = Depends(get_current_user),

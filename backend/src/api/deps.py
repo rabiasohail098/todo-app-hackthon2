@@ -1,7 +1,7 @@
 """FastAPI dependencies for database and authentication."""
 
 from typing import Generator, Optional
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlmodel import Session
 from jose import JWTError, jwt
@@ -39,21 +39,24 @@ def get_db() -> Generator[Session, None, None]:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
 ) -> str:
-    """Get current user from JWT token.
+    """Get current user from JWT token with X-User-Id header fallback.
 
-    This dependency extracts and validates the JWT token from the
-    Authorization header, then returns the user_id claim.
+    This dependency first tries to extract and validate the JWT token from the
+    Authorization header, then falls back to X-User-Id header if present.
+    Returns the user_id.
 
     Args:
-        credentials: HTTP Authorization credentials from Bearer token
+        request: FastAPI request object to access headers
+        credentials: HTTP Authorization credentials from Bearer token (optional)
 
     Returns:
-        str: User ID extracted from JWT token
+        str: User ID extracted from JWT token or X-User-Id header
 
     Raises:
-        HTTPException: 401 if token is missing, invalid, or expired
+        HTTPException: 401 if no valid token or header is present
 
     Example:
         @app.get("/api/tasks")
@@ -66,41 +69,52 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    try:
-        # Extract token from credentials
-        token = credentials.credentials
+    # First, try to get user ID from Authorization header JWT
+    if credentials:
+        try:
+            # Extract token from credentials
+            token = credentials.credentials
 
-        # Decode JWT token
-        payload = jwt.decode(
-            token,
-            JWT_SECRET,
-            algorithms=[JWT_ALGORITHM]
-        )
+            # Decode JWT token
+            payload = jwt.decode(
+                token,
+                JWT_SECRET,
+                algorithms=[JWT_ALGORITHM]
+            )
 
-        # Extract user_id from 'sub' claim (standard JWT claim for subject)
-        user_id: Optional[str] = payload.get("sub")
+            # Extract user_id from 'sub' claim (standard JWT claim for subject)
+            user_id: Optional[str] = payload.get("sub")
 
-        if user_id is None:
+            if user_id is not None:
+                return user_id
+
+        except JWTError:
+            # JWT was provided but is invalid, so raise exception
             raise credentials_exception
 
-    except JWTError:
-        raise credentials_exception
+    # If no valid JWT or no JWT provided, try X-User-Id header fallback
+    user_id_from_header = request.headers.get("x-user-id")
+    if user_id_from_header:
+        return user_id_from_header
 
-    return user_id
+    # No authentication method worked
+    raise credentials_exception
 
 
 async def get_current_user_optional(
+    request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(
         HTTPBearer(auto_error=False)
     ),
 ) -> Optional[str]:
-    """Get current user from JWT token if present (optional).
+    """Get current user from JWT token if present with X-User-Id header fallback (optional).
 
     This dependency is similar to get_current_user but doesn't raise
     an exception if no token is provided. Useful for endpoints that
     can work with or without authentication.
 
     Args:
+        request: FastAPI request object to access headers
         credentials: HTTP Authorization credentials (optional)
 
     Returns:
@@ -113,22 +127,28 @@ async def get_current_user_optional(
                 return {"message": "Authenticated user"}
             return {"message": "Anonymous user"}
     """
-    if credentials is None:
-        return None
+    # First, try to get user ID from Authorization header JWT
+    if credentials:
+        try:
+            token = credentials.credentials
+            payload = jwt.decode(
+                token,
+                JWT_SECRET,
+                algorithms=[JWT_ALGORITHM]
+            )
+            user_id: Optional[str] = payload.get("sub")
 
-    try:
-        token = credentials.credentials
-        payload = jwt.decode(
-            token,
-            JWT_SECRET,
-            algorithms=[JWT_ALGORITHM]
-        )
-        user_id: Optional[str] = payload.get("sub")
+            if user_id is not None:
+                return user_id
 
-        if user_id is None:
-            return None
+        except JWTError:
+            # JWT was provided but is invalid, continue to try header fallback
+            pass
 
-        return user_id
+    # If no valid JWT or no JWT provided, try X-User-Id header fallback
+    user_id_from_header = request.headers.get("x-user-id")
+    if user_id_from_header:
+        return user_id_from_header
 
-    except JWTError:
-        return None
+    # No authentication method worked
+    return None

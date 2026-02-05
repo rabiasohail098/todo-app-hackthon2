@@ -5,7 +5,7 @@ REST endpoints for category management
 
 from typing import Any, List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 
 from ...models.category import Category, CategoryCreate, CategoryRead, CategoryUpdate
@@ -15,7 +15,7 @@ from ..deps import get_current_user, get_session
 router = APIRouter()
 
 
-def get_user_id(current_user: Any = Depends(get_current_user)) -> str:
+def get_user_id(request: Request, current_user: Any = Depends(get_current_user)) -> str:
     """
     Extract user ID from current_user as a String.
     """
@@ -48,6 +48,7 @@ def get_user_id(current_user: Any = Depends(get_current_user)) -> str:
 
 @router.get("/categories", response_model=List[CategoryRead])
 async def list_categories(
+    request: Request,
     user_id: str = Depends(get_user_id),
     session: Session = Depends(get_session),
 ):
@@ -60,6 +61,7 @@ async def list_categories(
     "/categories", response_model=CategoryRead, status_code=status.HTTP_201_CREATED
 )
 async def create_category(
+    request: Request,
     category_data: CategoryCreate,
     user_id: str = Depends(get_user_id),
     session: Session = Depends(get_session),
@@ -74,6 +76,7 @@ async def create_category(
 
 @router.get("/categories/{category_id}", response_model=CategoryRead)
 async def get_category(
+    request: Request,
     category_id: int,
     user_id: str = Depends(get_user_id),
     session: Session = Depends(get_session),
@@ -91,6 +94,7 @@ async def get_category(
 
 @router.put("/categories/{category_id}", response_model=CategoryRead)
 async def update_category(
+    request: Request,
     category_id: int,
     category_data: CategoryUpdate,
     user_id: str = Depends(get_user_id),
@@ -112,6 +116,7 @@ async def update_category(
 
 @router.delete("/categories/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_category(
+    request: Request,
     category_id: int,
     user_id: str = Depends(get_user_id),
     session: Session = Depends(get_session),

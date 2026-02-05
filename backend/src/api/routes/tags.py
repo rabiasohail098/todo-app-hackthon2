@@ -1,7 +1,7 @@
 """Tag API endpoints."""
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlmodel import Session
 
 from ...models.tag import Tag, TagCreate, TagRead
@@ -19,6 +19,7 @@ router = APIRouter()
     summary="Get all tags for user",
 )
 async def get_tags(
+    request: Request,
     search: Optional[str] = Query(None, description="Search tags by name"),
     current_user_id: str = Depends(get_current_user),
     session: Session = Depends(get_db),
@@ -49,6 +50,7 @@ async def get_tags(
     summary="Create a new tag",
 )
 async def create_tag(
+    request: Request,
     tag_data: TagCreate,
     current_user_id: str = Depends(get_current_user),
     session: Session = Depends(get_db),
@@ -80,6 +82,7 @@ async def create_tag(
     summary="Delete a tag",
 )
 async def delete_tag(
+    request: Request,
     tag_id: int,
     current_user_id: str = Depends(get_current_user),
     session: Session = Depends(get_db),
@@ -116,6 +119,7 @@ async def delete_tag(
     summary="Get most frequently used tags",
 )
 async def get_popular_tags(
+    request: Request,
     limit: int = Query(10, ge=1, le=50, description="Maximum number of tags to return"),
     current_user_id: str = Depends(get_current_user),
     session: Session = Depends(get_db),
@@ -145,6 +149,7 @@ async def get_popular_tags(
     summary="Add tag to task",
 )
 async def add_tag_to_task(
+    request: Request,
     task_id: int,
     tag_id: int,
     current_user_id: str = Depends(get_current_user),
@@ -197,6 +202,7 @@ async def add_tag_to_task(
     summary="Remove tag from task",
 )
 async def remove_tag_from_task(
+    request: Request,
     task_id: int,
     tag_id: int,
     current_user_id: str = Depends(get_current_user),
@@ -253,6 +259,7 @@ async def remove_tag_from_task(
     summary="Get all tags for a task",
 )
 async def get_task_tags(
+    request: Request,
     task_id: int,
     current_user_id: str = Depends(get_current_user),
     session: Session = Depends(get_db),

@@ -1,7 +1,7 @@
 """Statistics API endpoints."""
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, status, Request
 from sqlmodel import Session
 from datetime import datetime, timedelta
 
@@ -16,6 +16,7 @@ router = APIRouter()
     summary="Get overall task statistics",
 )
 async def get_statistics(
+    request: Request,
     start_date: Optional[str] = Query(None, description="Start date (ISO format: YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="End date (ISO format: YYYY-MM-DD)"),
     current_user_id: str = Depends(get_current_user),
@@ -74,6 +75,7 @@ async def get_statistics(
     summary="Get daily task creation and completion statistics",
 )
 async def get_daily_statistics(
+    request: Request,
     start_date: Optional[str] = Query(None, description="Start date (ISO format: YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="End date (ISO format: YYYY-MM-DD)"),
     current_user_id: str = Depends(get_current_user),
@@ -123,6 +125,7 @@ async def get_daily_statistics(
     summary="Get most productive day of the week",
 )
 async def get_most_productive_day(
+    request: Request,
     start_date: Optional[str] = Query(None, description="Start date (ISO format: YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="End date (ISO format: YYYY-MM-DD)"),
     current_user_id: str = Depends(get_current_user),
@@ -172,6 +175,7 @@ async def get_most_productive_day(
     summary="Get task distribution across categories",
 )
 async def get_category_distribution(
+    request: Request,
     current_user_id: str = Depends(get_current_user),
     session: Session = Depends(get_db),
 ) -> List[dict]:
@@ -198,6 +202,7 @@ async def get_category_distribution(
     summary="Get task distribution across priority levels",
 )
 async def get_priority_distribution(
+    request: Request,
     current_user_id: str = Depends(get_current_user),
     session: Session = Depends(get_db),
 ) -> List[dict]:

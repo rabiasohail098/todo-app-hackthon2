@@ -1,0 +1,9 @@
+{
+  "enabledMcpjsonServers": [
+    "github",
+    "postgres",
+    "filesystem",
+    "docker"
+  ],
+  "enableAllProjectMcpServers": true
+}

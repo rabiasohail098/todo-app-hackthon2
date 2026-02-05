@@ -151,10 +151,19 @@ class ChatService:
             # Commit any state changes made by the agent
             self.session.commit()
         except Exception as e:
-            response_content = f"Sorry, I encountered an error: {str(e)}"
-            response_data = {"type": "error", "content": response_content}
+            print(f"Error processing message: {str(e)}")
             import traceback
             traceback.print_exc()
+
+            # More user-friendly error message
+            if "OpenRouter API error" in str(e):
+                response_content = "Sorry, I'm having trouble connecting to the AI service right now. Please try again later."
+            elif "invalid_grant" in str(e) or "invalid_client" in str(e):
+                response_content = "Sorry, there's an issue with the AI service configuration. Please contact support."
+            else:
+                response_content = f"Sorry, I encountered an error: {str(e)[:200]}..." if len(str(e)) > 200 else f"Sorry, I encountered an error: {str(e)}"
+
+            response_data = {"type": "error", "content": response_content}
 
         # Step 6: Save assistant response
         assistant_message = self.save_message(

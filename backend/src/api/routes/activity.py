@@ -1,7 +1,7 @@
 """API routes for task activity logs."""
 
 from typing import List
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlmodel import Session
 
 from ..deps import get_db, get_current_user
@@ -13,6 +13,7 @@ router = APIRouter(prefix="/api/tasks", tags=["activity"])
 
 @router.get("/{task_id}/activity", response_model=List[TaskActivityRead])
 def get_task_activity(
+    request: Request,
     task_id: int,
     limit: int = Query(default=50, ge=1, le=100),
     current_user: str = Depends(get_current_user),

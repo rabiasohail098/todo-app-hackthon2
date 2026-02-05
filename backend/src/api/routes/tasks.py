@@ -1,7 +1,7 @@
 """Task API endpoints."""
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Request
 from sqlmodel import Session
 
 from ...models.task import Task, TaskCreate, TaskUpdate, TaskRead
@@ -18,6 +18,7 @@ router = APIRouter()
     summary="Create a new task",
 )
 async def create_task(
+    request: Request,
     task_data: TaskCreate,
     current_user_id: str = Depends(get_current_user),
     session: Session = Depends(get_db),
@@ -47,6 +48,7 @@ async def create_task(
     summary="Get all tasks for current user",
 )
 async def get_tasks(
+    request: Request,
     category_id: Optional[int] = Query(None, description="Filter by category ID"),
     priority: Optional[str] = Query(None, description="Filter by priority (critical, high, medium, low)"),
     is_completed: Optional[bool] = Query(None, description="Filter by completion status"),
@@ -98,6 +100,7 @@ async def get_tasks(
     summary="Get a specific task",
 )
 async def get_task(
+    request: Request,
     task_id: int,
     current_user_id: str = Depends(get_current_user),
     session: Session = Depends(get_db),
@@ -136,6 +139,7 @@ async def get_task(
     summary="Update a task",
 )
 async def update_task(
+    request: Request,
     task_id: int,
     task_data: TaskUpdate,
     current_user_id: str = Depends(get_current_user),
@@ -176,6 +180,7 @@ async def update_task(
     summary="Delete a task",
 )
 async def delete_task(
+    request: Request,
     task_id: int,
     current_user_id: str = Depends(get_current_user),
     session: Session = Depends(get_db),

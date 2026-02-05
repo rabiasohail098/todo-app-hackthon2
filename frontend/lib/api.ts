@@ -46,8 +46,8 @@ function getUserIdFromStorage(): string | null {
     const storedSession = localStorage.getItem("better-auth-session");
     if (storedSession) {
       const session = JSON.parse(storedSession);
-      // Check if session is valid (less than 24 hours old)
-      if (session.timestamp && Date.now() - session.timestamp < 24 * 60 * 60 * 1000) {
+      // Check if session is valid (less than 23 hours old to account for clock differences)
+      if (session.timestamp && Date.now() - session.timestamp < 23 * 60 * 60 * 1000) {
         return session.user?.id || null;
       }
     }
@@ -185,7 +185,7 @@ export const apiClient = {
  * This wrapper attaches the X-User-Id header from localStorage so
  * server-side API routes can identify the user via the header fallback.
  */
-export function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string> || {}),
   };
@@ -196,11 +196,41 @@ export function authFetch(url: string, options: RequestInit = {}): Promise<Respo
     headers["X-User-Id"] = userId;
   }
 
+  // Also try to get session token and add to Authorization header as fallback
+  const sessionData = await getSessionFromStorage();
+  if (sessionData?.token) {
+    headers["Authorization"] = `Bearer ${sessionData.token}`;
+  }
+
   return fetch(url, {
     ...options,
     headers,
     credentials: "include",
   });
+}
+
+/**
+ * Get session data from localStorage with validation.
+ *
+ * @returns Session data if valid, null otherwise
+ */
+async function getSessionFromStorage(): Promise<{user: any, token: string, timestamp: number} | null> {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const storedSession = localStorage.getItem("better-auth-session");
+    if (storedSession) {
+      const session = JSON.parse(storedSession);
+
+      // Check if session is still valid (less than 23 hours old to account for clock differences)
+      if (session.timestamp && Date.now() - session.timestamp < 23 * 60 * 60 * 1000) {
+        return session;
+      }
+    }
+  } catch (e) {
+    console.error("Failed to get session from storage:", e);
+  }
+  return null;
 }
 
 export default api;

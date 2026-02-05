@@ -6,7 +6,9 @@
 import { NextRequest } from "next/server";
 import { getUserId, createBackendToken } from "@/lib/api-auth";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Use BACKEND_API_URL for server-side API forwarding (internal container communication)
+// Falls back to NEXT_PUBLIC_API_URL for backward compatibility, then localhost
+const BACKEND_URL = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 /**
  * GET /api/conversations/[id]/messages - Get all messages from a conversation

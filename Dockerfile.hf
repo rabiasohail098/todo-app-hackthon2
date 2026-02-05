@@ -13,14 +13,16 @@ RUN npm install
 
 COPY frontend/ .
 
-# Build-time env vars - frontend talks to backend internally
+# Build-time env vars - frontend talks to backend via same origin in HF deployment
 ARG BETTER_AUTH_SECRET=build-placeholder-secret-that-is-long-enough-32chars
-ARG NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+ARG NEXT_PUBLIC_API_URL=  # Empty for same-origin requests in Hugging Face deployment
+ARG BACKEND_API_URL=http://127.0.0.1:8000  # Internal backend URL for Next.js API routes
 ARG NEXT_PUBLIC_BASE_URL=
 ARG DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder
 
 ENV BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV BACKEND_API_URL=${BACKEND_API_URL}
 ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
 ENV DATABASE_URL=${DATABASE_URL}
 
@@ -73,7 +75,8 @@ server {
     proxy_send_timeout 60s;
     proxy_read_timeout 60s;
 
-    # Frontend (Next.js)
+    # Frontend (Next.js) - handles all routes including API routes
+    # Next.js API routes will internally call the backend
     location / {
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
@@ -87,6 +90,7 @@ server {
     }
 
     # Backend API (FastAPI) - direct access via /backend/
+    # This allows direct backend access if needed
     location /backend/ {
         rewrite ^/backend/(.*) /$1 break;
         proxy_pass http://127.0.0.1:8000;
@@ -177,7 +181,8 @@ export DATABASE_URL="${DATABASE_URL}"
 export JWT_SECRET="${JWT_SECRET:-default-jwt-secret-change-me}"
 export CORS_ORIGINS="${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,https://*.hf.space}"
 export BETTER_AUTH_SECRET="${BETTER_AUTH_SECRET}"
-export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://127.0.0.1:8000}"
+export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL}"
+export BACKEND_API_URL="${BACKEND_API_URL:-http://127.0.0.1:8000}"
 export NEXT_PUBLIC_BASE_URL="${NEXT_PUBLIC_BASE_URL}"
 export OPENAI_API_KEY="${OPENAI_API_KEY}"
 export OPENAI_BASE_URL="${OPENAI_BASE_URL:-https://openrouter.ai/api/v1}"
@@ -187,6 +192,7 @@ echo "✅ Environment configured"
 echo "   DATABASE_URL: $(echo $DATABASE_URL | sed 's/:[^:@]*@/:***@/')"
 echo "   CORS_ORIGINS: ${CORS_ORIGINS}"
 echo "   NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL}"
+echo "   BACKEND_API_URL: ${BACKEND_API_URL}"
 
 # Check required environment variables
 if [ -z "$DATABASE_URL" ]; then

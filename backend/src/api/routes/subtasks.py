@@ -1,7 +1,7 @@
 """Subtask API endpoints."""
 
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlmodel import Session
 
 from ...models.subtask import Subtask, SubtaskCreate, SubtaskUpdate, SubtaskRead
@@ -20,6 +20,7 @@ router = APIRouter()
     summary="Create a new subtask",
 )
 async def create_subtask(
+    request: Request,
     task_id: int,
     subtask_data: SubtaskCreate,
     current_user_id: str = Depends(get_current_user),
@@ -59,6 +60,7 @@ async def create_subtask(
     summary="Get all subtasks for a task",
 )
 async def get_subtasks(
+    request: Request,
     task_id: int,
     current_user_id: str = Depends(get_current_user),
     session: Session = Depends(get_db),
@@ -95,6 +97,7 @@ async def get_subtasks(
     summary="Get subtask completion progress",
 )
 async def get_subtask_progress(
+    request: Request,
     task_id: int,
     current_user_id: str = Depends(get_current_user),
     session: Session = Depends(get_db),
@@ -132,6 +135,7 @@ async def get_subtask_progress(
     summary="Update a subtask",
 )
 async def update_subtask(
+    request: Request,
     subtask_id: int,
     subtask_data: SubtaskUpdate,
     current_user_id: str = Depends(get_current_user),
@@ -188,6 +192,7 @@ async def update_subtask(
     summary="Delete a subtask",
 )
 async def delete_subtask(
+    request: Request,
     subtask_id: int,
     current_user_id: str = Depends(get_current_user),
     session: Session = Depends(get_db),

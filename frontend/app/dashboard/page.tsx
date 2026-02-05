@@ -144,17 +144,44 @@ export default function DashboardPage() {
       // Fetch from our Next.js API route
       const url = `/api/tasks${params.toString() ? `?${params.toString()}` : ""}`;
       const response = await authFetch(url);
+
       if (!response.ok) {
-        throw new Error("Failed to fetch tasks");
+        // Handle different error statuses appropriately
+        if (response.status === 401) {
+          // Unauthorized - redirect to sign-in
+          console.log("Unauthorized access, redirecting to sign-in");
+          router.push("/auth/sign-in");
+          return;
+        } else if (response.status === 403) {
+          // Forbidden - likely a session issue
+          setError("Access forbidden. Please sign in again.");
+          router.push("/auth/sign-in");
+          return;
+        } else if (response.status >= 500) {
+          // Server error - likely database or backend issue
+          throw new Error("Server error occurred. The backend may be experiencing issues.");
+        } else {
+          // Other client errors
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Failed to fetch tasks (${response.status})`);
+        }
       }
+
       const fetchedTasks: Task[] = await response.json();
       setTasks(fetchedTasks);
     } catch (err: any) {
-      setError(err.message || "Failed to fetch tasks");
+      console.error("Error fetching tasks:", err);
+      if (err.message.includes("Failed to fetch")) {
+        setError("Unable to connect to the server. Please check your internet connection and try again.");
+      } else if (err.message.includes("Server error")) {
+        setError("Server is temporarily unavailable. Please try again later.");
+      } else {
+        setError(err.message || "An unexpected error occurred while fetching tasks.");
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [searchQuery, filters]); // Dependencies: only re-create when search or filters change
+  }, [searchQuery, filters, router]); // Dependencies: only re-create when search or filters change
 
   /**
    * Fetch tasks on component mount and when search query or filters change.
@@ -405,12 +432,23 @@ export default function DashboardPage() {
         {error && (
           <div className="p-4 bg-red-100 dark:bg-red-900 border border-red-400 text-red-700 dark:text-red-300 rounded-lg fade-in">
             {error}
-            <button
-              onClick={() => setError(null)}
-              className="ml-4 underline text-sm"
-            >
-              Dismiss
-            </button>
+            <div className="flex gap-4 mt-2">
+              <button
+                onClick={() => {
+                  setError(null);
+                  fetchTasks(); // Retry fetching tasks
+                }}
+                className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm"
+              >
+                Retry
+              </button>
+              <button
+                onClick={() => setError(null)}
+                className="underline text-sm"
+              >
+                Dismiss
+              </button>
+            </div>
           </div>
         )}
 

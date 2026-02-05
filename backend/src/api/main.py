@@ -35,13 +35,13 @@ REQUIRED_ENV_VARS = {
 missing_vars = []
 for var, description in REQUIRED_ENV_VARS.items():
     if not os.getenv(var):
-        missing_vars.append(f"  ❌ {var}: {description}")
-        print(f"❌ ERROR: {var} environment variable is not set", file=sys.stderr)
+        missing_vars.append(f"  [X] {var}: {description}")
+        print(f"[X] ERROR: {var} environment variable is not set", file=sys.stderr)
         print(f"Fix: Add {var}=your-value to your .env file", file=sys.stderr)
 
 if missing_vars:
     print("\n" + "=" * 60, file=sys.stderr)
-    print("❌ MISSING REQUIRED ENVIRONMENT VARIABLES", file=sys.stderr)
+    print("[X] MISSING REQUIRED ENVIRONMENT VARIABLES", file=sys.stderr)
     print("=" * 60, file=sys.stderr)
     for var_msg in missing_vars:
         print(var_msg, file=sys.stderr)
@@ -52,13 +52,13 @@ if missing_vars:
 
 # Load environment variables
 print("=" * 60)
-print("🚀 BACKEND STARTING WITH DEBUG MODE")
+print("[INFO] BACKEND STARTING WITH DEBUG MODE")
 print("=" * 60)
 print(f"Loaded .env file: {env_path}")
 print(f"File exists: {env_path.exists()}")
-print(f"✅ DATABASE_URL: ***{os.getenv('DATABASE_URL', 'MISSING')[-20:]}")
-print(f"✅ JWT_SECRET: {'*' * 20}")
-print(f"✅ CORS_ORIGINS: {os.getenv('CORS_ORIGINS', 'MISSING')}")
+print(f"[V] DATABASE_URL: ***{os.getenv('DATABASE_URL', 'MISSING')[-20:]}")
+print(f"[V] JWT_SECRET: {'*' * 20}")
+print(f"[V] CORS_ORIGINS: {os.getenv('CORS_ORIGINS', 'MISSING')}")
 print(f"OpenRouter API Key: {os.getenv('OPENAI_API_KEY', 'MISSING')[:30]}...")
 print(f"OpenRouter Base URL: {os.getenv('OPENAI_BASE_URL', 'MISSING')}")
 print(f"AI Model: {os.getenv('AI_MODEL', 'MISSING')}")
@@ -82,7 +82,7 @@ app.add_middleware(
     allow_origins=origins_list,  # Specific origins from environment
     allow_credentials=True,  # Allow cookies/auth headers
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_headers=["Content-Type", "Authorization", "X-User-Id"],
     expose_headers=["Content-Type"],
     max_age=3600,  # Cache preflight requests for 1 hour
 )
@@ -157,10 +157,10 @@ def generate_recurring_tasks():
         session.commit()
         session.close()
 
-        logger.info(f"✅ Generated {generated_count} recurring task occurrences")
+        logger.info(f"[V] Generated {generated_count} recurring task occurrences")
 
     except Exception as e:
-        logger.error(f"❌ Error generating recurring tasks: {e}", exc_info=True)
+        logger.error(f"[X] Error generating recurring tasks: {e}", exc_info=True)
 
 
 # Schedule the job to run every hour
@@ -174,7 +174,7 @@ scheduler.add_job(
 
 # Start the scheduler
 scheduler.start()
-logger.info("⏰ APScheduler started - recurring tasks will be generated every hour")
+logger.info("[T] APScheduler started - recurring tasks will be generated every hour")
 
 # Shut down the scheduler when exiting the app
 atexit.register(lambda: scheduler.shutdown())
@@ -198,9 +198,9 @@ async def lifespan(app: FastAPI):
         try:
             from ..services.kafka.producer import get_kafka_producer
             producer = await get_kafka_producer()
-            logger.info("✅ Kafka producer initialized")
+            logger.info("[V] Kafka producer initialized")
         except Exception as e:
-            logger.warning(f"⚠️ Kafka producer not available: {e}")
+            logger.warning(f"[!] Kafka producer not available: {e}")
 
     yield
 
@@ -210,7 +210,7 @@ async def lifespan(app: FastAPI):
         try:
             from ..services.kafka.producer import shutdown_kafka_producer
             await shutdown_kafka_producer()
-            logger.info("✅ Kafka producer stopped")
+            logger.info("[V] Kafka producer stopped")
         except Exception as e:
             logger.error(f"Error stopping Kafka producer: {e}")
 

@@ -68,24 +68,41 @@ export default function SignInPage() {
       const token = data?.token as string | undefined;
       const user = data?.user as Record<string, unknown> | undefined;
 
-      // Store in localStorage for middleware fallback
-      if (user) {
-        localStorage.setItem("better-auth-session", JSON.stringify({
+      if (user && token) {
+        // Store in localStorage for middleware fallback
+        const sessionData = {
           user,
           token,
           timestamp: Date.now()
-        }));
-        console.log("Session stored in localStorage");
-      }
+        };
 
-      if (token) {
+        localStorage.setItem("better-auth-session", JSON.stringify(sessionData));
+        console.log("Session stored in localStorage");
+
         // Set cookie with appropriate attributes for HuggingFace
         const isSecure = window.location.protocol === 'https:';
         const cookieValue = `better-auth.session_token=${token}; path=/; max-age=86400; SameSite=Lax${isSecure ? '; Secure' : ''}`;
         document.cookie = cookieValue;
         console.log("Cookie set manually:", cookieValue);
       } else {
-        console.log("No token found in response, relying on server-side cookie");
+        console.log("No session data found in response, trying to get from better-auth");
+
+        // Try to get session from better-auth client as fallback
+        try {
+          const { data: session } = await authClient.getSession();
+          if (session?.user && session?.accessToken) {
+            const sessionData = {
+              user: session.user,
+              token: session.accessToken,
+              timestamp: Date.now()
+            };
+
+            localStorage.setItem("better-auth-session", JSON.stringify(sessionData));
+            console.log("Session retrieved from better-auth client and stored in localStorage");
+          }
+        } catch (sessionErr) {
+          console.error("Failed to get session from better-auth client:", sessionErr);
+        }
       }
 
       console.log("Sign-in successful, redirecting to dashboard...");
