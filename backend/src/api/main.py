@@ -4,6 +4,8 @@ import logging
 import os
 from pathlib import Path
 
+# Rebuild triggered on 2026-02-06 to refresh Hugging Face Space
+
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
