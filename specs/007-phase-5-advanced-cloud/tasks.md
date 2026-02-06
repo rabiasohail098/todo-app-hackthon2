@@ -390,6 +390,7 @@
   - [ ] minAvailable/maxUnavailable set
   - [ ] Node drain drains safely
   - [ ] Service remains available
+  
 - **Time**: 2 hours
 - **Owner**: DevOps Developer
 - **Dependencies**: C3.1
