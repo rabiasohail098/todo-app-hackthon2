@@ -1,0 +1,164 @@
+# Default values for todo-app Helm chart
+# This is a YAML-formatted file
+
+namespace: todo-app
+
+# Image pull settings
+imagePullPolicy: Never  # Use local images loaded via minikube image load
+imagePullSecrets: []
+
+# Frontend Configuration
+frontend:
+  image:
+    repository: todo-frontend
+    tag: latest
+  replicas: 1  # Reduced for local dev
+  port: 3000
+  service:
+    type: NodePort
+    nodePort: 30000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  autoscaling:
+    enabled: false  # Disabled for local dev
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
+  env:
+    NEXT_PUBLIC_API_URL: http://backend-service:8000
+    NEXT_PUBLIC_LOG_LEVEL: debug
+    BETTER_AUTH_SECRET: SMpypQSUUyLDNIX8mXe7laTA3DxExPWCEJNqYAHbcYw=
+    BETTER_AUTH_URL: http://localhost:30000
+  livenessProbe:
+    httpGet:
+      path: /api/health
+      port: 3000
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /api/health
+      port: 3000
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 2
+
+# Backend Configuration
+backend:
+  image:
+    repository: todo-backend
+    tag: latest
+  replicas: 1  # Reduced for local dev
+  port: 8000
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  autoscaling:
+    enabled: false  # Disabled for local dev
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
+  env:
+    API_HOST: 0.0.0.0
+    API_PORT: 8000
+    LOG_LEVEL: debug
+    SCHEDULER_ENABLED: "true"
+    JWT_ALGORITHM: HS256
+    JWT_EXPIRATION_HOURS: "24"
+    CORS_ORIGINS: "http://localhost:3000,http://localhost:30000,http://frontend-service:3000"
+    OPENAI_BASE_URL: "https://openrouter.ai/api/v1"
+    AI_MODEL: "meta-llama/llama-3.3-70b-instruct:free"
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 2
+
+# Database Configuration
+database:
+  external: true  # Set to true for external DB (Neon), false for in-cluster postgres
+  host: postgres
+  port: 5432
+  name: todo_db
+  user: postgres
+  # password is stored in Secret
+
+# Database Migrations
+migrations:
+  enabled: false  # Disabled for local dev - run manually if needed
+
+# Configuration values (ConfigMap)
+config:
+  LOG_LEVEL: debug
+  SCHEDULER_ENABLED: "true"
+  JWT_ALGORITHM: HS256
+  JWT_EXPIRATION_HOURS: "24"
+  CORS_ORIGINS: "http://localhost:3000,http://localhost:30000"
+
+# Ingress Configuration (disabled by default)
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+  hosts:
+    - host: localhost
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Pod Security
+podSecurityContext:
+  runAsNonRoot: false
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# Tolerations and Affinity
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Secrets (override in production)
+secrets:
+  databaseUrl: "postgresql://neondb_owner:npg_Y3RBZLpvUl6V@ep-noisy-pond-a43waieh-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require"
+  jwtSecret: "4b80b59528789db7866a089a92d2e0fe241666e2af5f84c1097de11cd7dc4d56"
+  openaiApiKey: "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"
+  cloudinaryCloudName: ""
+  cloudinaryApiKey: ""
+  cloudinaryApiSecret: ""
+
+# Labels for all resources
+labels:
+  app: todo-app
+  version: v1

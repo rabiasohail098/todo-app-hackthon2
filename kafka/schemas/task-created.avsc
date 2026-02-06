@@ -1,0 +1,18 @@
+{
+  "type": "record",
+  "name": "TaskCreated",
+  "namespace": "com.todoapp.events",
+  "doc": "Event emitted when a new task is created",
+  "fields": [
+    {"name": "eventId", "type": "string", "doc": "Unique event identifier"},
+    {"name": "eventTimestamp", "type": "long", "doc": "Event timestamp in milliseconds"},
+    {"name": "userId", "type": "string", "doc": "User who created the task"},
+    {"name": "taskId", "type": "string", "doc": "Unique task identifier"},
+    {"name": "title", "type": "string", "doc": "Task title"},
+    {"name": "description", "type": ["null", "string"], "default": null, "doc": "Task description"},
+    {"name": "priority", "type": {"type": "enum", "name": "Priority", "symbols": ["LOW", "MEDIUM", "HIGH"]}, "doc": "Task priority"},
+    {"name": "status", "type": "string", "default": "pending", "doc": "Task status"},
+    {"name": "dueDate", "type": ["null", "long"], "default": null, "doc": "Due date timestamp"},
+    {"name": "tags", "type": {"type": "array", "items": "string"}, "default": [], "doc": "Task tags"}
+  ]
+}

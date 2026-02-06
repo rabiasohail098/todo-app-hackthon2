@@ -1,0 +1,846 @@
+openapi: 3.0.3
+info:
+  title: Todo App - Intermediate Features API
+  description: API specification for categories, priorities, tags, search, statistics, subtasks, and attachments
+  version: 1.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: http://localhost:8000/api
+    description: Local development
+  - url: https://api.todoapp.com/api
+    description: Production
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ========================================
+  # Categories
+  # ========================================
+  /categories:
+    get:
+      summary: List user's categories
+      tags: [Categories]
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  categories:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+
+    post:
+      summary: Create new category
+      tags: [Categories]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                  example: Work
+                color:
+                  type: string
+                  pattern: '^#[0-9A-Fa-f]{6}$'
+                  example: '#3B82F6'
+                icon:
+                  type: string
+                  example: 💼
+      responses:
+        '201':
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /categories/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    put:
+      summary: Update category
+      tags: [Categories]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 50
+                color:
+                  type: string
+                  pattern: '^#[0-9A-Fa-f]{6}$'
+                icon:
+                  type: string
+      responses:
+        '200':
+          description: Category updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete category
+      tags: [Categories]
+      responses:
+        '204':
+          description: Category deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ========================================
+  # Tasks (Enhanced)
+  # ========================================
+  /tasks:
+    get:
+      summary: List tasks with filters
+      tags: [Tasks]
+      parameters:
+        - name: priority
+          in: query
+          schema:
+            $ref: '#/components/schemas/TaskPriority'
+        - name: category_id
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, completed]
+        - name: due_date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: due_date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: overdue
+          in: query
+          schema:
+            type: boolean
+        - name: tags
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Task'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+
+    post:
+      summary: Create task with advanced fields
+      tags: [Tasks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title:
+                  type: string
+                  maxLength: 200
+                description:
+                  type: string
+                priority:
+                  $ref: '#/components/schemas/TaskPriority'
+                due_date:
+                  type: string
+                  format: date-time
+                category_id:
+                  type: integer
+                tags:
+                  type: array
+                  items:
+                    type: string
+                recurrence_pattern:
+                  $ref: '#/components/schemas/RecurrencePattern'
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+
+  /tasks/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    put:
+      summary: Update task
+      tags: [Tasks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                priority:
+                  $ref: '#/components/schemas/TaskPriority'
+                due_date:
+                  type: string
+                  format: date-time
+                category_id:
+                  type: integer
+                is_completed:
+                  type: boolean
+      responses:
+        '200':
+          description: Task updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+
+  # ========================================
+  # Search
+  # ========================================
+  /tasks/search:
+    get:
+      summary: Search tasks
+      tags: [Search]
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query
+          schema:
+            type: string
+        - name: category_id
+          in: query
+          schema:
+            type: integer
+        - name: priority
+          in: query
+          schema:
+            $ref: '#/components/schemas/TaskPriority'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, completed]
+        - name: tags
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Task'
+                  total:
+                    type: integer
+                  query:
+                    type: string
+
+  # ========================================
+  # Statistics
+  # ========================================
+  /statistics:
+    get:
+      summary: Get user statistics
+      tags: [Statistics]
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: User statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Statistics'
+
+  # ========================================
+  # Subtasks
+  # ========================================
+  /tasks/{task_id}/subtasks:
+    parameters:
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    post:
+      summary: Add subtask
+      tags: [Subtasks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title:
+                  type: string
+                  maxLength: 200
+                order:
+                  type: integer
+      responses:
+        '201':
+          description: Subtask created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subtask'
+
+  /tasks/{task_id}/subtasks/{subtask_id}:
+    parameters:
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: subtask_id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    put:
+      summary: Update subtask
+      tags: [Subtasks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                order:
+                  type: integer
+      responses:
+        '200':
+          description: Subtask updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subtask'
+
+    delete:
+      summary: Delete subtask
+      tags: [Subtasks]
+      responses:
+        '204':
+          description: Subtask deleted
+
+  /tasks/{task_id}/subtasks/{subtask_id}/complete:
+    parameters:
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: subtask_id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    put:
+      summary: Mark subtask complete/incomplete
+      tags: [Subtasks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [is_completed]
+              properties:
+                is_completed:
+                  type: boolean
+      responses:
+        '200':
+          description: Subtask status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subtask'
+
+  # ========================================
+  # Tags
+  # ========================================
+  /tags:
+    get:
+      summary: List all user tags
+      tags: [Tags]
+      responses:
+        '200':
+          description: List of tags
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tags:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tag'
+
+  /tasks/{task_id}/tags:
+    parameters:
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    post:
+      summary: Add tag to task
+      tags: [Tags]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 30
+      responses:
+        '201':
+          description: Tag added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+
+  /tasks/{task_id}/tags/{tag_id}:
+    parameters:
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: tag_id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    delete:
+      summary: Remove tag from task
+      tags: [Tags]
+      responses:
+        '204':
+          description: Tag removed
+
+  # ========================================
+  # Attachments
+  # ========================================
+  /tasks/{task_id}/attachments:
+    parameters:
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    post:
+      summary: Upload attachment
+      tags: [Attachments]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Attachment uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attachment'
+        '413':
+          description: File too large (max 10MB)
+
+  /tasks/{task_id}/attachments/{attachment_id}:
+    parameters:
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: attachment_id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Download attachment
+      tags: [Attachments]
+      responses:
+        '200':
+          description: Attachment file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+    delete:
+      summary: Delete attachment
+      tags: [Attachments]
+      responses:
+        '204':
+          description: Attachment deleted
+
+  # ========================================
+  # Activity Log
+  # ========================================
+  /tasks/{task_id}/activity:
+    parameters:
+      - name: task_id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      summary: Get task activity log
+      tags: [Activity Log]
+      responses:
+        '200':
+          description: Activity log
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  activities:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TaskActivity'
+
+# ========================================
+# Components
+# ========================================
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    TaskPriority:
+      type: string
+      enum: [critical, high, medium, low]
+      default: medium
+
+    RecurrencePattern:
+      type: string
+      enum: [daily, weekly, monthly, custom]
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: string
+        name:
+          type: string
+        color:
+          type: string
+        icon:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        is_completed:
+          type: boolean
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        due_date:
+          type: string
+          format: date-time
+        category_id:
+          type: integer
+        category:
+          $ref: '#/components/schemas/Category'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+        subtasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Subtask'
+        recurrence_pattern:
+          $ref: '#/components/schemas/RecurrencePattern'
+        next_recurrence_date:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Tag:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: string
+        name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    Subtask:
+      type: object
+      properties:
+        id:
+          type: integer
+        parent_task_id:
+          type: integer
+        title:
+          type: string
+        is_completed:
+          type: boolean
+        order:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    TaskActivity:
+      type: object
+      properties:
+        id:
+          type: integer
+        task_id:
+          type: integer
+        user_id:
+          type: string
+        action:
+          type: string
+          enum: [created, updated, completed, deleted]
+        field:
+          type: string
+        old_value:
+          type: string
+        new_value:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    Attachment:
+      type: object
+      properties:
+        id:
+          type: integer
+        task_id:
+          type: integer
+        filename:
+          type: string
+        file_path:
+          type: string
+        file_size:
+          type: integer
+        mime_type:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    Statistics:
+      type: object
+      properties:
+        total_tasks:
+          type: integer
+        completed_tasks:
+          type: integer
+        completion_rate:
+          type: number
+          format: float
+        tasks_completed_this_week:
+          type: integer
+        average_completion_time_hours:
+          type: number
+          format: float
+        most_productive_day:
+          type: string
+        tasks_by_priority:
+          type: object
+          properties:
+            critical:
+              type: integer
+            high:
+              type: integer
+            medium:
+              type: integer
+            low:
+              type: integer
+        tasks_by_category:
+          type: array
+          items:
+            type: object
+            properties:
+              category_name:
+                type: string
+              count:
+                type: integer
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Resource not found
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Invalid or missing authentication token

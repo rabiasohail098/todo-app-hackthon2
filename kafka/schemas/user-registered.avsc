@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "UserRegistered",
+  "namespace": "com.todoapp.events",
+  "doc": "Event emitted when a new user registers",
+  "fields": [
+    {"name": "eventId", "type": "string", "doc": "Unique event identifier"},
+    {"name": "eventTimestamp", "type": "long", "doc": "Event timestamp in milliseconds"},
+    {"name": "userId", "type": "string", "doc": "Unique user identifier"},
+    {"name": "email", "type": "string", "doc": "User email address"},
+    {"name": "name", "type": ["null", "string"], "default": null, "doc": "User display name"},
+    {"name": "registrationSource", "type": "string", "default": "web", "doc": "Registration source"}
+  ]
+}

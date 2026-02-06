@@ -1,0 +1,15 @@
+{
+  "type": "record",
+  "name": "TaskCompleted",
+  "namespace": "com.todoapp.events",
+  "doc": "Event emitted when a task is marked as completed",
+  "fields": [
+    {"name": "eventId", "type": "string", "doc": "Unique event identifier"},
+    {"name": "eventTimestamp", "type": "long", "doc": "Event timestamp in milliseconds"},
+    {"name": "userId", "type": "string", "doc": "User who completed the task"},
+    {"name": "taskId", "type": "string", "doc": "Unique task identifier"},
+    {"name": "title", "type": "string", "doc": "Task title"},
+    {"name": "completedAt", "type": "long", "doc": "Completion timestamp"},
+    {"name": "duration", "type": ["null", "long"], "default": null, "doc": "Time taken to complete in milliseconds"}
+  ]
+}

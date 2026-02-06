@@ -90,14 +90,50 @@ export default function SignUpPage() {
 
     try {
       // Call Better Auth sign-up
-      await signUp.email({
+      const result = await signUp.email({
         email: formData.email,
         password: formData.password,
         name: formData.email.split("@")[0], // Use email prefix as name
       });
 
-      // Redirect to dashboard on success
-      router.push("/dashboard");
+      console.log("Sign-up result:", JSON.stringify(result, null, 2));
+
+      if (result?.error) {
+        console.error("Sign-up error:", result.error);
+        throw new Error(result.error.message || "Sign up failed");
+      }
+
+      // HuggingFace proxy may strip Set-Cookie headers
+      // Store session info in localStorage as backup
+      const data = result?.data as Record<string, unknown> | undefined;
+      const token = data?.token as string | undefined;
+      const user = data?.user as Record<string, unknown> | undefined;
+
+      // Store in localStorage for middleware fallback
+      if (user) {
+        localStorage.setItem("better-auth-session", JSON.stringify({
+          user,
+          token,
+          timestamp: Date.now()
+        }));
+        console.log("Session stored in localStorage");
+      }
+
+      if (token) {
+        // Set cookie with appropriate attributes for HuggingFace
+        const isSecure = window.location.protocol === 'https:';
+        const cookieValue = `better-auth.session_token=${token}; path=/; max-age=86400; SameSite=Lax${isSecure ? '; Secure' : ''}`;
+        document.cookie = cookieValue;
+        console.log("Cookie set manually:", cookieValue);
+      } else {
+        console.log("No token found in response, relying on server-side cookie");
+      }
+
+      // Small delay to ensure storage is set before redirect
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // Full page reload to ensure session is picked up
+      window.location.href = "/dashboard";
     } catch (error: any) {
       // Handle sign-up errors
       const errorMessage =

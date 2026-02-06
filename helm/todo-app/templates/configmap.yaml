@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: todo-app
+data:
+  LOG_LEVEL: "{{ .Values.config.LOG_LEVEL }}"
+  SCHEDULER_ENABLED: "{{ .Values.config.SCHEDULER_ENABLED }}"
+  JWT_ALGORITHM: "{{ .Values.config.JWT_ALGORITHM }}"
+  JWT_EXPIRATION_HOURS: "{{ .Values.config.JWT_EXPIRATION_HOURS }}"
+  CORS_ORIGINS: "{{ .Values.config.CORS_ORIGINS }}"
+  DATABASE_HOST: "{{ .Values.database.host }}"
+  DATABASE_PORT: "{{ .Values.database.port }}"
+  DATABASE_NAME: "{{ .Values.database.name }}"
+  DATABASE_USER: "{{ .Values.database.user }}"
+  API_HOST: "{{ .Values.backend.env.API_HOST }}"
+  API_PORT: "{{ .Values.backend.env.API_PORT }}"

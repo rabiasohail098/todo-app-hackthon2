@@ -1,18 +1,7 @@
 'use client';
 
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppWrapper, useApp } from "@/context/AppContext";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 function RootLayoutContent({ children }: { children: React.ReactNode }) {
   const { language } = useApp();
@@ -28,7 +17,7 @@ function RootLayoutContent({ children }: { children: React.ReactNode }) {
         <meta name="description" content="A beautiful and functional todo application with theme support" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
+        className="font-sans antialiased min-h-screen"
       >
         {children}
       </body>

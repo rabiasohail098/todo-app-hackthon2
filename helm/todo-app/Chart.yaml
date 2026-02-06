@@ -1,0 +1,18 @@
+apiVersion: v2
+name: todo-app
+description: A Helm chart for deploying Todo Chatbot with AI to Kubernetes
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+home: https://github.com/panaversity/todo-app-hackathon
+sources:
+  - https://github.com/panaversity/todo-app-hackathon
+maintainers:
+  - name: Todo Team
+    email: team@todo.example.com
+keywords:
+  - todo
+  - chatbot
+  - ai
+  - kubernetes
+  - helm

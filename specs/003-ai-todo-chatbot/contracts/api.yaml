@@ -1,0 +1,63 @@
+openapi: 3.0.3
+info:
+  title: AI-Powered Todo Chatbot API
+  description: |
+    REST API for conversational task management using OpenAI Agents SDK with MCP tools.
+
+    **Stateless Architecture**: Server holds no memory between requests.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8000
+    description: Local development
+  - url: https://api.yourdomain.com
+    description: Production
+
+security:
+  - BearerAuth: []
+
+paths:
+  /api/chat:
+    post:
+      summary: Send chat message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - message
+              properties:
+                message:
+                  type: string
+                  example: "Add a task to buy groceries"
+                conversation_id:
+                  type: integer
+                  nullable: true
+                  example: 123
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversation_id:
+                    type: integer
+                  message_id:
+                    type: integer
+                  response:
+                    type: string
+                  tool_calls:
+                    type: array
+                    items:
+                      type: object
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

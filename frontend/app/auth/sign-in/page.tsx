@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signIn } from "@/lib/auth-client";
+import { signIn, authClient } from "@/lib/auth-client";
 import { FormError } from "@/types";
 import { LogIn, Mail, Lock, Sparkles, Sun, Moon, Languages } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -46,21 +46,80 @@ export default function SignInPage() {
     setIsLoading(true);
 
     try {
+      console.log("Starting sign-in process...");
+
       // Call Better Auth sign-in
-      await signIn.email({
+      const result = await signIn.email({
         email: formData.email,
         password: formData.password,
       });
 
-      // Redirect to dashboard on success
-      router.push("/dashboard");
+      console.log("Sign-in result:", JSON.stringify(result, null, 2));
+
+      if (result?.error) {
+        console.error("Sign-in error:", result.error);
+        setErrors([{ field: "general", message: result.error.message || t.invalidCredentials }]);
+        return;
+      }
+
+      // HuggingFace proxy may strip Set-Cookie headers
+      // Store session info in localStorage as backup
+      const data = result?.data as Record<string, unknown> | undefined;
+      const token = data?.token as string | undefined;
+      const user = data?.user as Record<string, unknown> | undefined;
+
+      if (user && token) {
+        // Store in localStorage for middleware fallback
+        const sessionData = {
+          user,
+          token,
+          timestamp: Date.now()
+        };
+
+        localStorage.setItem("better-auth-session", JSON.stringify(sessionData));
+        console.log("Session stored in localStorage");
+
+        // Set cookie with appropriate attributes for HuggingFace
+        const isSecure = window.location.protocol === 'https:';
+        const cookieValue = `better-auth.session_token=${token}; path=/; max-age=86400; SameSite=Lax${isSecure ? '; Secure' : ''}`;
+        document.cookie = cookieValue;
+        console.log("Cookie set manually:", cookieValue);
+      } else {
+        console.log("No session data found in response, trying to get from better-auth");
+
+        // Try to get session from better-auth client as fallback
+        try {
+          const { data: session } = await authClient.getSession();
+          if (session?.user && session?.session) {
+            const sessionData = {
+              user: session.user,
+              token: session.session.token || session.session.id,
+              timestamp: Date.now()
+            };
+
+            localStorage.setItem("better-auth-session", JSON.stringify(sessionData));
+            console.log("Session retrieved from better-auth client and stored in localStorage");
+          }
+        } catch (sessionErr) {
+          console.error("Failed to get session from better-auth client:", sessionErr);
+        }
+      }
+
+      console.log("Sign-in successful, redirecting to dashboard...");
+
+      // Small delay to ensure storage is set before redirect
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // Full page reload to ensure session is picked up
+      window.location.href = "/dashboard";
     } catch (error: any) {
-      // Handle sign-in errors with generic message for security
-      // Don't reveal whether email exists or password is wrong
+      console.error("Sign-in exception:", error);
+      // Show the actual error message
+      const errorMessage = error?.message || error?.toString() || t.invalidCredentials;
       setErrors([
         {
           field: "general",
-          message: t.invalidCredentials,
+          message: errorMessage,
         },
       ]);
     } finally {
@@ -173,6 +232,7 @@ export default function SignInPage() {
             <button
               type="submit"
               disabled={isLoading}
+              onClick={() => console.log("Button clicked!")}
               className="group w-full relative px-8 py-5 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 hover:from-purple-700 hover:via-pink-700 hover:to-blue-700 text-white font-bold rounded-2xl shadow-2xl transition-all transform hover:scale-105 hover:shadow-purple-500/50 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden text-fade-up text-fade-up-delay-2"
             >
               <span className="relative z-10 flex items-center justify-center gap-2">

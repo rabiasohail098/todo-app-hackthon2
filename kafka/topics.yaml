@@ -1,0 +1,69 @@
+# Kafka Topics Configuration
+# Phase 5: Advanced Cloud Features
+
+topics:
+  - name: task.created
+    partitions: 3
+    replication_factor: 1
+    retention_ms: 604800000  # 7 days
+    schema: task-created.avsc
+    description: Events when new tasks are created
+
+  - name: task.updated
+    partitions: 3
+    replication_factor: 1
+    retention_ms: 604800000
+    schema: task-updated.avsc
+    description: Events when tasks are modified
+
+  - name: task.completed
+    partitions: 3
+    replication_factor: 1
+    retention_ms: 2592000000  # 30 days
+    schema: task-completed.avsc
+    description: Events when tasks are marked complete
+
+  - name: task.deleted
+    partitions: 3
+    replication_factor: 1
+    retention_ms: 2592000000
+    schema: task-deleted.avsc
+    description: Events when tasks are deleted (audit)
+
+  - name: user.registered
+    partitions: 3
+    replication_factor: 1
+    retention_ms: 2592000000
+    schema: user-registered.avsc
+    description: Events when new users register
+
+  - name: notification.sent
+    partitions: 3
+    replication_factor: 1
+    retention_ms: 604800000
+    schema: notification-sent.avsc
+    description: Events when notifications are dispatched
+
+  - name: task.reminder
+    partitions: 3
+    replication_factor: 1
+    retention_ms: 86400000  # 1 day
+    schema: task-reminder.avsc
+    description: Task reminder events
+
+  - name: analytics.events
+    partitions: 6
+    replication_factor: 1
+    retention_ms: 2592000000
+    schema: analytics-event.avsc
+    description: User analytics and behavior tracking
+
+# Partition Strategy:
+# - Task events: Partitioned by taskId for ordering
+# - User events: Partitioned by userId
+# - Analytics: Higher partition count for throughput
+
+# Consumer Groups:
+# - todo-task-processor: Handles task lifecycle events
+# - todo-notification-service: Processes notification events
+# - todo-analytics-processor: Aggregates analytics data

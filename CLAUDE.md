@@ -208,3 +208,9 @@ Wait for consent; never auto-create ADRs. Group related decisions (stacks, authe
 
 ## Code Standards
 See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.
+
+## Active Technologies
+- Neon Serverless PostgreSQL (remote cloud database) (001-error-handling-stability)
+
+## Recent Changes
+- 001-error-handling-stability: Added Neon Serverless PostgreSQL (remote cloud database)

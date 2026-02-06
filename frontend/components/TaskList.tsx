@@ -11,8 +11,10 @@ interface TaskListProps {
   onToggle: (taskId: number, isCompleted: boolean) => void;
   onUpdate: (taskId: number, updates: TaskUpdate) => void;
   onDelete: (taskId: number) => void;
+  onTagClick?: (tagId: number, tagName: string) => void;
   className?: string;
   viewMode?: ViewMode;
+  searchQuery?: string;
 }
 
 /**
@@ -25,8 +27,10 @@ export default function TaskList({
   onToggle,
   onUpdate,
   onDelete,
+  onTagClick,
   className = "",
-  viewMode = 'list'
+  viewMode = 'list',
+  searchQuery = ""
 }: TaskListProps) {
   const t = useTranslation();
 
@@ -55,6 +59,9 @@ export default function TaskList({
             onToggle={onToggle}
             onUpdate={onUpdate}
             onDelete={onDelete}
+            onTagClick={onTagClick}
+            searchQuery={searchQuery}
+            isGridView={true}
           />
         ))}
       </div>
@@ -78,6 +85,9 @@ export default function TaskList({
                 onToggle={onToggle}
                 onUpdate={onUpdate}
                 onDelete={onDelete}
+                onTagClick={onTagClick}
+                searchQuery={searchQuery}
+                isGridView={false}
               />
             ))}
           </div>
@@ -98,6 +108,9 @@ export default function TaskList({
                 onToggle={onToggle}
                 onUpdate={onUpdate}
                 onDelete={onDelete}
+                onTagClick={onTagClick}
+                searchQuery={searchQuery}
+                isGridView={false}
               />
             ))}
           </div>

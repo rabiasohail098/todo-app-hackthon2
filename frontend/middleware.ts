@@ -4,27 +4,36 @@ import type { NextRequest } from "next/server";
 /**
  * Middleware for route protection.
  *
- * Protects /dashboard route by checking for authentication.
- * Redirects unauthenticated users to sign-in page.
+ * Note: On HuggingFace Spaces, cookies may not work properly due to proxy.
+ * Client-side auth checking is used as fallback.
  */
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Check if accessing protected dashboard route
-  if (pathname.startsWith("/dashboard")) {
-    // Check for authentication token in cookies
-    const authToken = request.cookies.get("better-auth.session_token");
+  // Skip middleware for API routes and static files
+  if (pathname.startsWith("/api") || pathname.startsWith("/_next")) {
+    return NextResponse.next();
+  }
 
-    // If no auth token, redirect to sign-in
-    if (!authToken) {
+  // Check if accessing protected routes
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/chat") || pathname.startsWith("/categories")) {
+    // Check for authentication token in cookies
+    const authToken = request.cookies.get("better-auth.session_token") ||
+                      request.cookies.get("better-auth_session_token") ||
+                      request.cookies.get("__Secure-better-auth.session_token");
+
+    // On HuggingFace, cookies may not work - let client-side handle auth
+    // Only redirect if we're sure there's no session
+    const isHuggingFace = request.headers.get("host")?.includes("hf.space");
+
+    if (!authToken && !isHuggingFace) {
       const signInUrl = new URL("/auth/sign-in", request.url);
-      // Add redirect parameter to return to dashboard after sign-in
       signInUrl.searchParams.set("redirect", pathname);
       return NextResponse.redirect(signInUrl);
     }
   }
 
-  // Allow request to proceed
+  // Allow request to proceed - client-side will check auth
   return NextResponse.next();
 }
 
@@ -40,6 +49,6 @@ export const config = {
      * - images (/_next/image/*)
      * - favicon and other static assets
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)/"
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)"
   ],
 };

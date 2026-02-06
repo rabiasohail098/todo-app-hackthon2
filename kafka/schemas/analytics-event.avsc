@@ -1,0 +1,17 @@
+{
+  "type": "record",
+  "name": "AnalyticsEvent",
+  "namespace": "com.todoapp.events",
+  "doc": "Generic analytics event for tracking user behavior",
+  "fields": [
+    {"name": "eventId", "type": "string", "doc": "Unique event identifier"},
+    {"name": "eventTimestamp", "type": "long", "doc": "Event timestamp in milliseconds"},
+    {"name": "userId", "type": ["null", "string"], "default": null, "doc": "User identifier if authenticated"},
+    {"name": "sessionId", "type": "string", "doc": "Session identifier"},
+    {"name": "eventName", "type": "string", "doc": "Event name"},
+    {"name": "eventCategory", "type": "string", "doc": "Event category"},
+    {"name": "properties", "type": {"type": "map", "values": "string"}, "default": {}, "doc": "Additional event properties"},
+    {"name": "userAgent", "type": ["null", "string"], "default": null, "doc": "User agent string"},
+    {"name": "ipAddress", "type": ["null", "string"], "default": null, "doc": "Client IP address"}
+  ]
+}

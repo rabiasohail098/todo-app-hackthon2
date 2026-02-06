@@ -1,80 +1,74 @@
 /**
- * Conversation Messages API
- * GET /api/conversations/[id]/messages - Get messages for a conversation
- * POST /api/conversations/[id]/messages - Add a message to a conversation
+ * Conversation Messages API Proxy
+ * Forwards requests to the Python FastAPI backend for conversation messages
  */
 
-import { conversationStore } from "@/lib/conversationStore";
+import { NextRequest } from "next/server";
+import { getUserId, createBackendToken } from "@/lib/api-auth";
 
+// Use BACKEND_API_URL for server-side API forwarding (internal container communication)
+// Falls back to NEXT_PUBLIC_API_URL for backward compatibility, then localhost
+const BACKEND_URL = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+/**
+ * GET /api/conversations/[id]/messages - Get all messages from a conversation
+ */
 export async function GET(
-  req: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
-    const conversation = conversationStore.getConversation(id);
+    const { id: conversationId } = await params;
 
-    if (!conversation) {
+    const userId = await getUserId();
+
+    if (!userId) {
       return new Response(
-        JSON.stringify({ error: "Conversation not found" }),
-        { status: 404, headers: { "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Authentication required" }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    return new Response(
-      JSON.stringify(conversation.messages.map(m => ({
-        id: m.id,
-        role: m.role,
-        content: m.content,
-      }))),
-      { headers: { "Content-Type": "application/json" } }
-    );
-  } catch (error) {
-    console.error("Error fetching messages:", error);
-    return new Response(
-      JSON.stringify({ error: "Failed to fetch messages" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
-  }
-}
+    // Create JWT token for backend
+    const backendToken = await createBackendToken(userId);
 
-export async function POST(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id } = await params;
-    const { role, content } = await req.json();
+    // Forward request to backend
+    const backendResponse = await fetch(
+      `${BACKEND_URL}/api/chat/conversations/${conversationId}/messages`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${backendToken}`,
+        },
+      }
+    );
 
-    if (!role || !content) {
+    if (!backendResponse.ok) {
+      const errorText = await backendResponse.text();
+      console.error("=== BACKEND ERROR (Load Messages) ===");
+      console.error("URL:", `${BACKEND_URL}/api/chat/conversations/${conversationId}/messages`);
+      console.error("Status:", backendResponse.status);
+      console.error("Error:", errorText);
+      console.error("=================================");
       return new Response(
-        JSON.stringify({ error: "Role and content are required" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Failed to fetch conversation messages", detail: errorText }),
+        {
+          status: backendResponse.status,
+          headers: { "Content-Type": "application/json" },
+        }
       );
     }
 
-    const message = conversationStore.addMessage(id, { role, content });
-
-    if (!message) {
-      return new Response(
-        JSON.stringify({ error: "Conversation not found" }),
-        { status: 404, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    return new Response(
-      JSON.stringify({
-        id: message.id,
-        role: message.role,
-        content: message.content,
-      }),
-      { status: 201, headers: { "Content-Type": "application/json" } }
-    );
-  } catch (error) {
-    console.error("Error adding message:", error);
-    return new Response(
-      JSON.stringify({ error: "Failed to add message" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    const data = await backendResponse.json();
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error: unknown) {
+    console.error("Get Conversation Messages API Error:", error);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
