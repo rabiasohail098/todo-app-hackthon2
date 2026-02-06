@@ -4,7 +4,7 @@ import logging
 import os
 from pathlib import Path
 
-# Rebuild triggered on 2026-02-06 to refresh Hugging Face Space
+# Rebuild triggered on 2026-02-06 to refresh Hugging Face Space with proper env config
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, status
