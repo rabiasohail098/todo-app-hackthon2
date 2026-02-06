@@ -25,6 +25,7 @@ interface TaskItemProps {
   onTagClick?: (tagId: number, tagName: string) => void;
   className?: string;
   searchQuery?: string;
+  isGridView?: boolean;
 }
 
 /**
@@ -39,7 +40,8 @@ export default function TaskItem({
   onDelete,
   onTagClick,
   className = "",
-  searchQuery = ""
+  searchQuery = "",
+  isGridView = false
 }: TaskItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -306,7 +308,7 @@ export default function TaskItem({
   return (
     <div
       data-task-id={task.id}
-      className={`p-5 glass rounded-2xl transition-all duration-500 transform hover:scale-105 ${
+      className={`${isGridView ? 'h-full flex flex-col' : ''} p-5 glass rounded-2xl transition-all duration-500 transform hover:scale-[1.02] ${
         task.is_completed
           ? "border-2 border-green-400/30 shadow-lg shadow-green-500/20"
           : "border border-purple-300/20 hover:shadow-xl hover:shadow-purple-500/30"
@@ -317,104 +319,218 @@ export default function TaskItem({
           : '0 8px 32px rgba(147, 51, 234, 0.15)'
       }}
     >
-      <div className="flex items-start gap-3">
-        {/* Checkbox */}
-        <button
-          onClick={handleToggle}
-          disabled={isLoading}
-          className={`flex-shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
-            task.is_completed
-              ? "bg-green-500 border-green-500"
-              : "border-zinc-300 dark:border-zinc-600 hover:border-green-400"
-          } disabled:opacity-50`}
-          aria-label={
-            task.is_completed ? t.markIncomplete : t.markComplete
-          }
-        >
-          {task.is_completed && <Check size={16} className="text-white" />}
-        </button>
+      {isGridView ? (
+        // Grid view layout - vertical stacking
+        <div className="flex flex-col h-full">
+          {/* Task Content - grows to fill space */}
+          <div className="flex-grow">
+            <div className="flex items-start gap-3">
+              {/* Checkbox */}
+              <button
+                onClick={handleToggle}
+                disabled={isLoading}
+                className={`flex-shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
+                  task.is_completed
+                    ? "bg-green-500 border-green-500"
+                    : "border-zinc-300 dark:border-zinc-600 hover:border-green-400"
+                } disabled:opacity-50`}
+                aria-label={
+                  task.is_completed ? t.markIncomplete : t.markComplete
+                }
+              >
+                {task.is_completed && <Check size={16} className="text-white" />}
+              </button>
 
-        {/* Task Content */}
-        <div className="flex-grow min-w-0">
-          <h3
-            className={`font-medium transition-all duration-300 ${
-              task.is_completed
-                ? "line-through text-zinc-500 dark:text-zinc-500"
-                : "text-zinc-900 dark:text-zinc-100"
-            }`}
-            style={{ animation: 'textFadeUp 0.4s ease-out' }}
-          >
-            {highlightText(task.title, searchQuery)}
-          </h3>
-          {task.description && (
-            <p
-              className={`mt-1 text-sm ${
-                task.is_completed
-                  ? "line-through text-zinc-400 dark:text-zinc-600"
-                  : "text-zinc-600 dark:text-zinc-400"
-              }`}
-            >
-              {highlightText(task.description, searchQuery)}
-            </p>
-          )}
-          {/* Tags */}
-          {task.tags && task.tags.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {task.tags.map((tag) => (
-                <button
-                  key={tag.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (onTagClick) onTagClick(tag.id, tag.name);
-                  }}
-                  className="inline-flex items-center gap-0.5 px-2 py-0.5 text-xs font-medium rounded-md bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
-                  title={`Filter by #${tag.name}`}
+              {/* Task Title */}
+              <div className="flex-grow min-w-0">
+                <h3
+                  className={`font-medium transition-all duration-300 ${
+                    task.is_completed
+                      ? "line-through text-zinc-500 dark:text-zinc-500"
+                      : "text-zinc-900 dark:text-zinc-100"
+                  }`}
+                  style={{ animation: 'textFadeUp 0.4s ease-out' }}
                 >
-                  <Hash size={10} />
-                  {tag.name}
-                </button>
-              ))}
+                  {highlightText(task.title, searchQuery)}
+                </h3>
+                {task.description && (
+                  <p
+                    className={`mt-1 text-sm ${
+                      task.is_completed
+                        ? "line-through text-zinc-400 dark:text-zinc-600"
+                        : "text-zinc-600 dark:text-zinc-400"
+                    } line-clamp-2`}
+                  >
+                    {highlightText(task.description, searchQuery)}
+                  </p>
+                )}
+              </div>
             </div>
-          )}
-          {/* Recurrence Info */}
-          {task.recurrence_pattern && (
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400">
-              <Repeat size={12} />
-              <span>{formatRecurrenceInfo()}</span>
-            </div>
-          )}
-          <p className="mt-2 text-xs text-zinc-400 dark:text-zinc-500">
-            {t.created} {createdDate}
-          </p>
-        </div>
 
-        {/* Actions */}
-        <div className="flex gap-2 flex-shrink-0">
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="p-2 text-zinc-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded transition-colors"
-            aria-label={isExpanded ? "Collapse" : "Expand"}
-          >
-            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
-          <button
-            onClick={() => setIsEditing(true)}
-            disabled={isLoading}
-            className="p-2 text-zinc-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
-            aria-label={t.editTask}
-          >
-            <Edit3 size={16} />
-          </button>
-          <button
-            onClick={handleDelete}
-            disabled={isLoading}
-            className="p-2 text-zinc-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-            aria-label={t.deleteTask}
-          >
-            <Trash2 size={16} />
-          </button>
+            {/* Additional Info - date, tags, recurrence */}
+            <div className="mt-3 space-y-2">
+              {/* Tags */}
+              {task.tags && task.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {task.tags.map((tag) => (
+                    <button
+                      key={tag.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onTagClick) onTagClick(tag.id, tag.name);
+                      }}
+                      className="inline-flex items-center gap-0.5 px-2 py-0.5 text-xs font-medium rounded-md bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                      title={`Filter by #${tag.name}`}
+                    >
+                      <Hash size={10} />
+                      {tag.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Recurrence Info */}
+              {task.recurrence_pattern && (
+                <div className="flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400">
+                  <Repeat size={12} />
+                  <span>{formatRecurrenceInfo()}</span>
+                </div>
+              )}
+
+              <p className="text-xs text-zinc-400 dark:text-zinc-500">
+                {t.created} {createdDate}
+              </p>
+            </div>
+          </div>
+
+          {/* Actions at bottom in grid view */}
+          <div className="mt-auto pt-4 flex justify-end gap-2">
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="p-2 text-zinc-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded transition-colors"
+              aria-label={isExpanded ? "Collapse" : "Expand"}
+            >
+              {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+            <button
+              onClick={() => setIsEditing(true)}
+              disabled={isLoading}
+              className="p-2 text-zinc-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+              aria-label={t.editTask}
+            >
+              <Edit3 size={16} />
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={isLoading}
+              className="p-2 text-zinc-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+              aria-label={t.deleteTask}
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        // List view layout - horizontal arrangement
+        <div className="flex items-start gap-3">
+          {/* Checkbox */}
+          <button
+            onClick={handleToggle}
+            disabled={isLoading}
+            className={`flex-shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
+              task.is_completed
+                ? "bg-green-500 border-green-500"
+                : "border-zinc-300 dark:border-zinc-600 hover:border-green-400"
+            } disabled:opacity-50`}
+            aria-label={
+              task.is_completed ? t.markIncomplete : t.markComplete
+            }
+          >
+            {task.is_completed && <Check size={16} className="text-white" />}
+          </button>
+
+          {/* Task Content */}
+          <div className="flex-grow min-w-0">
+            <h3
+              className={`font-medium transition-all duration-300 ${
+                task.is_completed
+                  ? "line-through text-zinc-500 dark:text-zinc-500"
+                  : "text-zinc-900 dark:text-zinc-100"
+              }`}
+              style={{ animation: 'textFadeUp 0.4s ease-out' }}
+            >
+              {highlightText(task.title, searchQuery)}
+            </h3>
+            {task.description && (
+              <p
+                className={`mt-1 text-sm ${
+                  task.is_completed
+                    ? "line-through text-zinc-400 dark:text-zinc-600"
+                    : "text-zinc-600 dark:text-zinc-400"
+                }`}
+              >
+                {highlightText(task.description, searchQuery)}
+              </p>
+            )}
+            {/* Tags */}
+            {task.tags && task.tags.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {task.tags.map((tag) => (
+                  <button
+                    key={tag.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onTagClick) onTagClick(tag.id, tag.name);
+                    }}
+                    className="inline-flex items-center gap-0.5 px-2 py-0.5 text-xs font-medium rounded-md bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                    title={`Filter by #${tag.name}`}
+                  >
+                    <Hash size={10} />
+                    {tag.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* Recurrence Info */}
+            {task.recurrence_pattern && (
+              <div className="mt-2 flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400">
+                <Repeat size={12} />
+                <span>{formatRecurrenceInfo()}</span>
+              </div>
+            )}
+            <p className="mt-2 text-xs text-zinc-400 dark:text-zinc-500">
+              {t.created} {createdDate}
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="p-2 text-zinc-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded transition-colors"
+              aria-label={isExpanded ? "Collapse" : "Expand"}
+            >
+              {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+            <button
+              onClick={() => setIsEditing(true)}
+              disabled={isLoading}
+              className="p-2 text-zinc-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+              aria-label={t.editTask}
+            >
+              <Edit3 size={16} />
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={isLoading}
+              className="p-2 text-zinc-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+              aria-label={t.deleteTask}
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Expanded Section - Subtasks */}
       {isExpanded && (

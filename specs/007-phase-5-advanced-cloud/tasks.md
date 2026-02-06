@@ -476,19 +476,19 @@ Use this checklist for day-to-day tracking:
 
 ```markdown
 ## Week 1
-- [ ] Day 1: A1.1, A1.2, A1.3 (50% A1.4)
-- [ ] Day 2: A1.4, A1.5, A2.1, A2.2
-- [ ] Day 3: A2.3, A2.4, A2.5, A3.1
-- [ ] Day 4: A3.2, A3.3, A3.4, A3.5
+- [x] Day 1: A1.1, A1.2, A1.3 (50% A1.4)
+- [x] Day 2: A1.4, A1.5, A2.1, A2.2
+- [x] Day 3: A2.3, A2.4, A2.5, A3.1
+- [x] Day 4: A3.2, A3.3, A3.4, A3.5
 
 ## Week 2
-- [ ] Day 5: B1.1, B1.2, B1.3, C1.1 (50%)
-- [ ] Day 6: C1.1, B1.4, C2.1
-- [ ] Day 7: C2.2, C2.3, C3.1, C3.2
-- [ ] Day 8: C3.3, C3.4, B2.1, C4.1
+- [x] Day 5: B1.1, B1.2, B1.3, C1.1 (50%)
+- [x] Day 6: C1.1, B1.4, C2.1
+- [x] Day 7: C2.2, C2.3, C3.1, C3.2
+- [x] Day 8: C3.3, C3.4, B2.1, C4.1
 
 ## Week 3 (Optional)
-- [ ] Day 9: B2.2, B2.3, C4.2
-- [ ] Day 10: C4.3, C4.4
-- [ ] Day 11: Documentation, Optimization
+- [x] Day 9: B2.2, B2.3, C4.2
+- [x] Day 10: C4.3, C4.4
+- [x] Day 11: Documentation, Optimization
 ```

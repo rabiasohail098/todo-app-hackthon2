@@ -61,6 +61,7 @@ export default function TaskList({
             onDelete={onDelete}
             onTagClick={onTagClick}
             searchQuery={searchQuery}
+            isGridView={true}
           />
         ))}
       </div>
@@ -86,6 +87,7 @@ export default function TaskList({
                 onDelete={onDelete}
                 onTagClick={onTagClick}
                 searchQuery={searchQuery}
+                isGridView={false}
               />
             ))}
           </div>
@@ -108,6 +110,7 @@ export default function TaskList({
                 onDelete={onDelete}
                 onTagClick={onTagClick}
                 searchQuery={searchQuery}
+                isGridView={false}
               />
             ))}
           </div>

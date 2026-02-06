@@ -125,6 +125,7 @@ export const translations = {
     noInternetConnection: 'Unable to connect to the server. Please check your internet connection.',
     serverUnavailable: 'The server is temporarily unavailable. Please try again later.',
     authExpired: 'Authentication expired. Please sign in again.',
+    aiServiceUnavailable: 'Sorry, I\'m having trouble connecting to the AI service right now. Please try again later.',
     chat: 'Chat',
     statistics: 'Statistics',
   },
@@ -252,6 +253,7 @@ export const translations = {
     noInternetConnection: 'سرور سے رابطہ ممکن نہیں۔ براہ کرم اپنے انٹرنیٹ کنکشن کی جانچ کریں۔',
     serverUnavailable: 'سرور عارضی طور پر دستیاب نہیں ہے۔ براہ کرم بعد میں دوبارہ کوشش کریں۔',
     authExpired: 'توثیق کی میعاد ختم ہو گئی ہے۔ براہ کرم دوبارہ سائن ان کریں۔',
+    aiServiceUnavailable: 'معذرت، میں فی الحال AI سروس سے رابطہ کرنے میں پریشانی کا سامنا کر رہا ہوں۔ براہ کرم بعد میں دوبارہ کوشش کریں۔',
     chat: 'چیٹ',
     statistics: 'شماریات',
   }

@@ -59,7 +59,13 @@ export default function ChatPage() {
         const data = await response.json();
         console.log("Conversations data:", data);
         console.log("Conversations array:", data.conversations);
-        setConversations(data.conversations || []);
+        // Sort conversations by updated_at descending to show most recent first
+        const sortedConversations = Array.isArray(data.conversations)
+          ? [...data.conversations].sort((a, b) =>
+              new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+            )
+          : [];
+        setConversations(sortedConversations);
       } else if (response.status === 401) {
         // Unauthorized - redirect to sign-in
         console.log("Unauthorized access, redirecting to sign-in");
@@ -110,11 +116,38 @@ export default function ChatPage() {
         }
         // Refresh conversations list
         await loadConversations();
+      } else if (response.status === 401) {
+        // Unauthorized - redirect to sign-in
+        console.log("Unauthorized access, redirecting to sign-in");
+        router.push("/auth/sign-in");
       } else {
-        console.error("Failed to delete conversation:", response.status);
+        // Handle specific error statuses
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Failed to delete conversation:", response.status, errorData);
+
+        // Show error to user
+        const errorMsg: Message = {
+          id: `error-${Date.now()}`,
+          role: "assistant",
+          content: t.serverUnavailable,
+          created_at: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, errorMsg]);
       }
     } catch (error) {
-      console.error("Error deleting conversation:", error);
+      console.error("Network error deleting conversation:", error);
+
+      // Show error to user
+      const errorMsg: Message = {
+        id: `error-${Date.now()}`,
+        role: "assistant",
+        content: t.noInternetConnection,
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+    } finally {
+      setConversationToDelete(null);
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -137,6 +170,7 @@ export default function ChatPage() {
 
     const userMessage = inputMessage.trim();
     setInputMessage("");
+    if (isLoading) return; // Prevent duplicate submissions
     setIsLoading(true);
 
     // Add user message to UI immediately (optimistic update)
@@ -209,6 +243,9 @@ export default function ChatPage() {
           setTimeout(() => {
             router.push("/auth/sign-in");
           }, 2000);
+        } else if (error.message.toLowerCase().includes("ai") || error.message.toLowerCase().includes("openrouter")) {
+          // Specific handling for AI service errors
+          errorMessage = t.aiServiceUnavailable;
         } else {
           errorMessage = error.message || t.sorryError;
         }
